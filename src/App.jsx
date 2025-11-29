@@ -1,20 +1,21 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
-import ProtectedRoute from "./routes/ProtectedRoute";
-
+import { Routes, Route } from "react-router-dom";
 import LoginForm from "./components/login/LoginForm";
-
-
-
+import ProtectedRoute from "./routes/ProtectedRoute";
+import RoleBasedRoute from "./routes/RoleBasedRoute";
+import AdminLayout from "./layouts/AdminLayout";
+import AdminDashboard from "./components/dashboards/admin/AdminDashboard";
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<LoginForm />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <Routes>
+      <Route path="/" element={<LoginForm />} />
+      <Route element={<ProtectedRoute />}>
+        <Route element={<RoleBasedRoute allowedRoles={["admin"]} />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+          </Route>
+        </Route>
+      </Route>
+    </Routes>
   );
 }
