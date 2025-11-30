@@ -1,5 +1,3 @@
-// Improved UsersPage UI with better spacing, fixed overflow, proper See More handling, and polished design
-
 import React, { useState, useEffect } from "react";
 import {
   Shield,
@@ -10,9 +8,9 @@ import {
   Loader2,
   Users as UsersIcon,
 } from "lucide-react";
-import StatsCard from "./userManage/StatsCard";
-import UserCard from "./userManage/UserCard";
-import AddUserModal from "./userManage/AddUserModal";
+import StatsCard from "./userManagePage/StatsCard";
+import UserCard from "./userManagePage/UserCard";
+import AddUserModal from "./userManagePage/AddUserModal";
 import api from "../../../api/api";
 import { useAuthStore } from "../../../store/authStore";
 
