@@ -1,5 +1,3 @@
-// src/api/api.js
-
 const BaseUrl = import.meta.env.VITE_SERVER_API;
 
 const api = {
@@ -8,19 +6,14 @@ const api = {
     Register: BaseUrl + "auth/register-secret",
   },
   User: {
-    Create: BaseUrl + "users",             
-    GetAll: BaseUrl + "users",             
-    Update: (id) => `${BaseUrl}users/${id}`, 
-    UpdateStatus: BaseUrl + "users/status", 
-    Delete: (id) => `${BaseUrl}users/${id}`, 
+    GetOwnProfile: BaseUrl + "users/me",
+    AdminCreate: BaseUrl + "users",
+    AdminGetAll: BaseUrl + "users",
+    AdminUpdate: BaseUrl + "users/adminUpdate",
+    UpdateOwnProfile: BaseUrl + "users/update",
+    AdminUpdateStatus: BaseUrl + "users/status",
+    AdminDelete: BaseUrl + "users/delete",
   },
-  // Example placeholder for other modules
-  // Leads: {
-  //   GetAll: BaseUrl + "leads",
-  //   Create: BaseUrl + "leads",
-  //   Update: (id) => `${BaseUrl}leads/${id}`,
-  //   Delete: (id) => `${BaseUrl}leads/${id}`,
-  // },
 };
 
 export default api;

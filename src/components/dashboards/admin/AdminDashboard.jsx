@@ -21,9 +21,15 @@ export default function AdminDashboard() {
           <p className="text-3xl font-bold mt-3">48</p>
         </div>
 
-        {/* Reports Card */}
+        {/* Orders Card */}
         <div className="bg-white shadow rounded-lg p-5">
-          <h2 className="text-lg font-semibold">Reports</h2>
+          <h2 className="text-lg font-semibold">Orders</h2>
+          <p className="text-3xl font-bold mt-3">19</p>
+        </div>
+
+        {/* Leads Card */}
+        <div className="bg-white shadow rounded-lg p-5">
+          <h2 className="text-lg font-semibold">Leads</h2>
           <p className="text-3xl font-bold mt-3">19</p>
         </div>
 
