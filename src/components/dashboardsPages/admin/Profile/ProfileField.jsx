@@ -13,8 +13,8 @@ const ProfileField = ({ label, value, icon: Icon, disabled }) => {
 
         <input
           type="text"
-          defaultValue={value}   // ← FIX (no more React warning)
-          readOnly={disabled}    // ← Makes field non-editable for Role/Status
+          defaultValue={value}   
+          readOnly={disabled}    
           className={`w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-700 
             ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}
           `}
