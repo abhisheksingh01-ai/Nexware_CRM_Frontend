@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
+// ProfilePage.jsx
+import React, { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 import api from "../../../api/api";
 import { useAuthStore } from "../../../store/authStore";
 import ProfileDetails from "./Profile/ProfileDetails";
-import { Loader2 } from "lucide-react";
 
 export default function ProfilePage() {
-  const { user: authUser } = useAuthStore(); // Get logged-in user token
+  const { user: authUser } = useAuthStore();
   const [user, setUser] = useState(null);
-  const [teamHeadName, setTeamHeadName] = useState("Loading...");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -18,7 +18,6 @@ export default function ProfilePage() {
       try {
         setLoading(true);
 
-        // 🔹 Fetch own profile
         const res = await fetch(api.User.GetOwnProfile, {
           method: "GET",
           headers: {
@@ -29,29 +28,26 @@ export default function ProfilePage() {
 
         if (!res.ok) throw new Error("Failed to fetch profile");
 
-        const profileData = await res.json();
-        setUser(profileData.data); // ← Use .data because API returns { success, data }
+        const data = await res.json();
+        const profile = data.data;
 
-        // 🔹 Fetch Team Head details if exists
-        if (profileData.data?.teamHeadId) {
-          const headRes = await fetch(
-            `${api.User.AdminGetAll}/${profileData.data.teamHeadId}`,
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${authUser.token}`,
-              },
-            }
-          );
-
-          if (!headRes.ok) throw new Error("Failed to fetch team head");
-
-          const headData = await headRes.json();
-          setTeamHeadName(headData.data?.name || "Unknown");
-        } else {
-          setTeamHeadName("No Team Head");
+        // Fetch Team Head name if exists
+        let teamHeadName = "No Team Head";
+        if (profile.teamHeadId) {
+          const headRes = await fetch(`${api.User.AdminGetAll}/${profile.teamHeadId}`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authUser.token}`,
+            },
+          });
+          if (headRes.ok) {
+            const headData = await headRes.json();
+            teamHeadName = headData.data?.name || "Unknown";
+          }
         }
+
+        setUser({ ...profile, teamHeadName });
       } catch (err) {
         console.error("Error loading profile:", err);
         setError("Failed to load profile. Please try again.");
@@ -63,27 +59,35 @@ export default function ProfilePage() {
     fetchProfile();
   }, [authUser?.token]);
 
-  // 🔹 Loading state
   if (loading)
     return (
-      <div className="h-screen flex items-center justify-center">
-        <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
-        <p className="ml-4 text-gray-500">Loading profile...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+          <p className="text-gray-500 font-medium">Loading profile...</p>
+        </div>
       </div>
     );
 
-  // 🔹 Error state
   if (error)
     return (
-      <div className="h-screen flex flex-col items-center justify-center text-center">
-        <p className="text-red-500">{error}</p>
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-center p-4">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-red-100 max-w-sm">
+          <div className="text-red-500 font-medium mb-2">Error Loading Profile</div>
+          <p className="text-gray-500 text-sm mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
 
-  // 🔹 Render Profile Details
   return (
-    <div className="h-screen bg-gray-100 flex items-center justify-center p-4">
-      <ProfileDetails user={{ ...user, teamHeadName }} />
+    <div className="min-h-screen bg-gray-50 p-6 md:p-12 font-sans">
+      <ProfileDetails user={user} />
     </div>
   );
 }
