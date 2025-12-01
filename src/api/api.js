@@ -12,6 +12,7 @@ const api = {
     AdminUpdate: BaseUrl + "users/adminUpdate",
     UpdateOwnProfile: BaseUrl + "users/update",
     AdminUpdateStatus: BaseUrl + "users/status",
+    AdminUpdateAnyUserPassword : BaseUrl + "users/password",
     AdminDelete: BaseUrl + "users/delete",
   },
 };

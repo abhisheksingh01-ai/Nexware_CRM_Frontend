@@ -1,10 +1,34 @@
-// ProfileDetails.jsx
-import React from "react";
+import React, { useState } from "react";
 import ProfileImage from "./ProfileImage";
 import ProfileField from "./ProfileField";
+import ChangePasswordModal from "./ChangePasswordModal";
 import { User, Mail, Phone, Briefcase, Activity, Users } from "lucide-react";
 
 const ProfileDetails = ({ user }) => {
+  const [showChangePassword, setShowChangePassword] = useState(false);
+
+  const handleSavePassword = async (newPassword) => {
+    try {
+      // Replace with your actual API call
+      const res = await fetch("/api/users/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({ password: newPassword }),
+      });
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "Failed to update password");
+
+      alert("Password changed successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Error changing password");
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
@@ -27,11 +51,15 @@ const ProfileDetails = ({ user }) => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-8">
           <div className="flex flex-col md:flex-row gap-10">
+            {/* Left: Profile Image */}
             <div className="md:w-1/4 flex-shrink-0">
-              <h3 className="text-sm font-medium text-gray-900 mb-4 md:hidden">Profile Picture</h3>
+              <h3 className="text-sm font-medium text-gray-900 mb-4 md:hidden">
+                Profile Picture
+              </h3>
               <ProfileImage name={user.name} avatarUrl={user.avatar} />
             </div>
 
+            {/* Right: Profile Fields */}
             <div className="md:w-3/4 flex-1">
               <h3 className="text-lg font-medium text-gray-900 mb-6 border-b border-gray-100 pb-2">
                 Personal Information
@@ -45,14 +73,26 @@ const ProfileDetails = ({ user }) => {
                 <ProfileField label="Team Head" value={user.teamHeadName} icon={Users} disabled />
               </div>
 
+              {/* Security Section */}
               <div className="mt-8 pt-6 border-t border-gray-100">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-medium text-gray-900">Security</h3>
-                  <button className="text-sm text-indigo-600 font-medium hover:text-indigo-700">
+                  <button
+                    className="text-sm text-indigo-600 font-medium hover:text-indigo-700"
+                    onClick={() => setShowChangePassword(true)}
+                  >
                     Change Password
                   </button>
                 </div>
               </div>
+
+              {/* Change Password Modal */}
+              {showChangePassword && (
+                <ChangePasswordModal
+                  onClose={() => setShowChangePassword(false)}
+                  onSave={handleSavePassword}
+                />
+              )}
             </div>
           </div>
         </div>
