@@ -9,7 +9,7 @@ import LeadsPage from "./components/dashboardsPages/admin/LeadsPage";
 import UsersPage from "./components/dashboardsPages/admin/UsersPage";
 import ProductsPage from "./components/dashboardsPages/admin/ProductsPage";
 import OrdersPage from "./components/dashboardsPages/admin/OrdersPage";
-import ProfilePage from "./components/dashboardsPages/admin/ProfileSettingPage";
+import ProfilePage from "./components/dashboardsPages/admin/ProfilePage";
 
 export default function App() {
   return (
