@@ -1,6 +1,6 @@
 import React from "react";
 
-const ProfileField = ({ label, value, icon: Icon, disabled }) => {
+const ProfileField = ({ label, value, icon: Icon, disabled, onChange }) => {
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -13,8 +13,9 @@ const ProfileField = ({ label, value, icon: Icon, disabled }) => {
 
         <input
           type="text"
-          defaultValue={value}   
-          readOnly={disabled}    
+          value={value}        
+          readOnly={disabled}  
+          onChange={onChange}   
           className={`w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm text-gray-700 
             ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}
           `}

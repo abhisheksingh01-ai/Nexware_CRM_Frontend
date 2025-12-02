@@ -1,11 +1,64 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ProfileImage from "./ProfileImage";
 import ProfileField from "./ProfileField";
 import ChangePasswordModal from "./ChangePasswordModal";
 import { User, Mail, Phone, Briefcase, Activity, Users } from "lucide-react";
+import api from "../../../../api/api";
+import { useAuthStore } from "../../../../store/authStore";
 
 const ProfileDetails = ({ user }) => {
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const { user: authUser } = useAuthStore();
+
+  // ✅ Local state to manage editable profile data
+  const [profile, setProfile] = useState(user);
+
+  // Sync prop to local state when prop changes
+  useEffect(() => {
+    setProfile(user);
+  }, [user]);
+
+  // ✅ Save changes function
+  const handleSaveChanges = async () => {
+    try {
+      const token = authUser?.token;
+      if (!token) {
+        alert("User not authenticated");
+        return;
+      }
+
+      const res = await fetch(api.User.UpdateOwnProfile, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          id: profile._id,     // ⚠️ make sure your backend expects _id
+          name: profile.name,
+          email: profile.email,
+          phone: profile.phone,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Failed to update profile");
+        return;
+      }
+
+      // ✅ Update local state so UI shows new data
+      setProfile({ ...profile, ...data.data });
+
+      alert("Profile updated successfully!");
+      console.log("Update Response:", data);
+    } catch (error) {
+      console.error("Update error:", error);
+      alert("Something went wrong");
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
@@ -19,7 +72,10 @@ const ProfileDetails = ({ user }) => {
           <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 text-sm font-medium hover:bg-gray-50">
             Cancel
           </button>
-          <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-sm">
+          <button
+            onClick={handleSaveChanges}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-sm"
+          >
             Save changes
           </button>
         </div>
@@ -33,7 +89,7 @@ const ProfileDetails = ({ user }) => {
               <h3 className="text-sm font-medium text-gray-900 mb-4 md:hidden">
                 Profile Picture
               </h3>
-              <ProfileImage name={user.name} avatarUrl={user.avatar} />
+              <ProfileImage name={profile.name} avatarUrl={profile.avatar} />
             </div>
 
             {/* Right: Profile Fields */}
@@ -42,12 +98,27 @@ const ProfileDetails = ({ user }) => {
                 Personal Information
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <ProfileField label="Full Name" value={user.name} icon={User} />
-                <ProfileField label="Email Address" value={user.email} icon={Mail} />
-                <ProfileField label="Phone Number" value={user.phone} icon={Phone} />
-                <ProfileField label="Role" value={user.role} icon={Briefcase} disabled />
-                <ProfileField label="Status" value={user.status} icon={Activity} disabled />
-                <ProfileField label="Team Head" value={user.teamHeadName} icon={Users} disabled />
+                <ProfileField
+                  label="Full Name"
+                  value={profile.name}
+                  icon={User}
+                  onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                />
+                <ProfileField
+                  label="Email Address"
+                  value={profile.email}
+                  icon={Mail}
+                  onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                />
+                <ProfileField
+                  label="Phone Number"
+                  value={profile.phone}
+                  icon={Phone}
+                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                />
+                <ProfileField label="Role" value={profile.role} icon={Briefcase} disabled />
+                <ProfileField label="Status" value={profile.status} icon={Activity} disabled />
+                <ProfileField label="Team Head" value={profile.teamHeadName} icon={Users} disabled />
               </div>
 
               {/* Security Section */}
@@ -63,11 +134,8 @@ const ProfileDetails = ({ user }) => {
                 </div>
               </div>
 
-              {/* Change Password Modal */}
               {showChangePassword && (
-                <ChangePasswordModal
-                  onClose={() => setShowChangePassword(false)}
-                />
+                <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
               )}
             </div>
           </div>
