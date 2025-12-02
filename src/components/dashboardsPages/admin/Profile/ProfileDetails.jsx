@@ -9,16 +9,10 @@ import { useAuthStore } from "../../../../store/authStore";
 const ProfileDetails = ({ user }) => {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const { user: authUser } = useAuthStore();
-
-  // ✅ Local state to manage editable profile data
   const [profile, setProfile] = useState(user);
-
-  // Sync prop to local state when prop changes
   useEffect(() => {
     setProfile(user);
   }, [user]);
-
-  // ✅ Save changes function
   const handleSaveChanges = async () => {
     try {
       const token = authUser?.token;
@@ -34,7 +28,7 @@ const ProfileDetails = ({ user }) => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          id: profile._id,     // ⚠️ make sure your backend expects _id
+          id: profile._id,    
           name: profile.name,
           email: profile.email,
           phone: profile.phone,
@@ -47,14 +41,10 @@ const ProfileDetails = ({ user }) => {
         alert(data.message || "Failed to update profile");
         return;
       }
-
-      // ✅ Update local state so UI shows new data
       setProfile({ ...profile, ...data.data });
 
       alert("Profile updated successfully!");
-      console.log("Update Response:", data);
     } catch (error) {
-      console.error("Update error:", error);
       alert("Something went wrong");
     }
   };
@@ -85,7 +75,7 @@ const ProfileDetails = ({ user }) => {
         <div className="p-8">
           <div className="flex flex-col md:flex-row gap-10">
             {/* Left: Profile Image */}
-            <div className="md:w-1/4 flex-shrink-0">
+            <div className="md:w-1/4 shrink-0">
               <h3 className="text-sm font-medium text-gray-900 mb-4 md:hidden">
                 Profile Picture
               </h3>
