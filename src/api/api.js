@@ -4,6 +4,7 @@ const api = {
   Auth: {
     Login: BaseUrl + "auth/login",
     Register: BaseUrl + "auth/register-secret",
+    AdminCheckLastLogin: BaseUrl + "auth/lastlogin"
   },
   User: {
     GetOwnProfile: BaseUrl + "users/me",
