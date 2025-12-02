@@ -8,6 +8,7 @@ import {
   Loader2,
   Users as UsersIcon,
 } from "lucide-react";
+
 import StatsCard from "./userManagePage/StatsCard";
 import UserCard from "./userManagePage/UserCard";
 import AddUserModal from "./userManagePage/AddUserModal";
@@ -16,16 +17,19 @@ import { useAuthStore } from "../../../store/authStore";
 
 const UsersPage = () => {
   const { user } = useAuthStore();
+
+  // State
   const [showModal, setShowModal] = useState(false);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  // Fetch Users
+  // Fetch users from API
   const fetchUsers = async () => {
-    if (!user.token) return;
+    if (!user?.token) return;
+
+    setLoading(true);
     try {
-      setLoading(true);
       const res = await fetch(api.User.AdminGetAll, {
         method: "GET",
         headers: {
@@ -33,7 +37,9 @@ const UsersPage = () => {
           Authorization: `Bearer ${user.token}`,
         },
       });
+
       const data = await res.json();
+      // Ensure we always have an array
       setUsers(Array.isArray(data) ? data : data.users || []);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -44,31 +50,9 @@ const UsersPage = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, [user.token]);
+  }, [user?.token]);
 
-  // Add User
-  const addUser = async (newUser) => {
-    if (!user.token) return;
-    try {
-      const res = await fetch(api.User.AdminCreate, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${user.token}`,
-        },
-        body: JSON.stringify(newUser),
-      });
-      const data = await res.json();
-      if (data.success) {
-        fetchUsers();
-        setShowModal(false);
-      }
-    } catch (error) {
-      console.error("Error adding user:", error);
-    }
-  };
-
-  // Filter
+  // Filter users based on search term
   const filteredUsers = users.filter((u) => {
     const term = search.toLowerCase();
     return (
@@ -83,22 +67,39 @@ const UsersPage = () => {
       
       {/* Header */}
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Team Management</h1>
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+          Team Management
+        </h1>
         <p className="text-gray-500">Manage your admins, team heads, and agents.</p>
       </div>
 
-      {/* Stats */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard title="Total Users" count={users.length} icon={UsersIcon} color="indigo" />
-        <StatsCard title="Subadmins" count={users.filter((u) => u.role === "subadmin").length} icon={Shield} color="emerald" />
-        <StatsCard title="Team Heads" count={users.filter((u) => u.role === "teamhead").length} icon={Briefcase} color="amber" />
-        <StatsCard title="Agents" count={users.filter((u) => u.role === "agent").length} icon={Headphones} color="rose" />
+        <StatsCard
+          title="Subadmins"
+          count={users.filter((u) => u.role === "subadmin").length}
+          icon={Shield}
+          color="emerald"
+        />
+        <StatsCard
+          title="Team Heads"
+          count={users.filter((u) => u.role === "teamhead").length}
+          icon={Briefcase}
+          color="amber"
+        />
+        <StatsCard
+          title="Agents"
+          count={users.filter((u) => u.role === "agent").length}
+          icon={Headphones}
+          color="rose"
+        />
       </div>
 
-      {/* Sticky Action Bar */}
+      {/* Action Bar */}
       <div className="sticky top-4 z-30 bg-white/90 backdrop-blur-xl p-4 rounded-2xl border border-gray-200 shadow-md flex flex-col md:flex-row justify-between items-center gap-4">
-        
-        {/* Search */}
+
+        {/* Search Input */}
         <div className="relative w-full md:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
@@ -110,7 +111,7 @@ const UsersPage = () => {
           />
         </div>
 
-        {/* Add Button */}
+        {/* Add User Button */}
         <button
           onClick={() => setShowModal(true)}
           className="flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow hover:shadow-lg transition-all active:scale-95 w-full md:w-auto"
@@ -119,16 +120,14 @@ const UsersPage = () => {
         </button>
       </div>
 
-      {/* User Grid */}
+      {/* Users Grid */}
       <div className="min-h-[300px]">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-64 animate-pulse">
             <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
             <p className="text-gray-400 font-medium">Loading team data...</p>
           </div>
-
         ) : filteredUsers.length > 0 ? (
-
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-6 overflow-hidden">
             {filteredUsers.map((user) => (
               <div key={user._id || user.id} className="h-full">
@@ -136,14 +135,15 @@ const UsersPage = () => {
               </div>
             ))}
           </div>
-
         ) : (
           <div className="flex flex-col items-center justify-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
             <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm">
               <Search className="w-6 h-6 text-gray-400" />
             </div>
             <h3 className="text-gray-900 font-semibold text-lg">No members found</h3>
-            <p className="text-gray-500 text-sm mt-1">We couldn't find anyone matching "{search}"</p>
+            <p className="text-gray-500 text-sm mt-1">
+              We couldn't find anyone matching "{search}"
+            </p>
             <button
               onClick={() => setSearch("")}
               className="mt-4 text-indigo-600 font-medium hover:underline text-sm"
@@ -154,8 +154,8 @@ const UsersPage = () => {
         )}
       </div>
 
-      {/* Modal */}
-      {showModal && <AddUserModal onClose={() => setShowModal(false)} addUser={addUser} />}
+      {/* Add User Modal */}
+      {showModal && <AddUserModal onClose={() => setShowModal(false)} />}
     </div>
   );
 };
