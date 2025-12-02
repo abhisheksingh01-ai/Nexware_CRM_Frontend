@@ -63,7 +63,7 @@ const UserCard = ({ user, onEdit }) => {
           <div className={`
             w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 shadow-sm
             ${statusKey === 'active' 
-              ? 'bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-700' 
+              ? 'bg-linear-to-br from-indigo-50 to-indigo-100 text-indigo-700' 
               : 'bg-gray-100 text-gray-500'}
           `}>
             {user.name ? user.name.charAt(0).toUpperCase() : "?"}
@@ -74,7 +74,7 @@ const UserCard = ({ user, onEdit }) => {
               {user.name}
             </h3>
             <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-0.5 truncate">
-              <Mail className="w-3 h-3 flex-shrink-0" />
+              <Mail className="w-3 h-3 shrink-0" />
               <span className="truncate">{user.email}</span>
             </div>
           </div>
