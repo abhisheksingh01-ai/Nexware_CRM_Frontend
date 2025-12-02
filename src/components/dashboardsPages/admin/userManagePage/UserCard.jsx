@@ -1,74 +1,176 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { 
+  ChevronDown, 
+  ChevronUp, 
+  Mail, 
+  Phone, 
+  Shield, 
+  Briefcase, 
+  Edit3, 
+  CheckCircle, 
+  XCircle,
+  Users
+} from "lucide-react";
 
 const roleStyles = {
-  admin: "bg-red-100 text-red-700 border-red-300",
-  subadmin: "bg-green-100 text-green-700 border-green-300",
-  teamhead: "bg-yellow-100 text-yellow-700 border-yellow-300",
-  agent: "bg-blue-100 text-blue-700 border-blue-300",
+  admin: "bg-red-50 text-red-700 border-red-200 ring-1 ring-red-600/10",
+  subadmin: "bg-green-50 text-green-700 border-green-200 ring-1 ring-green-600/10",
+  teamhead: "bg-amber-50 text-amber-700 border-amber-200 ring-1 ring-amber-600/10",
+  agent: "bg-blue-50 text-blue-700 border-blue-200 ring-1 ring-blue-600/10",
 };
 
-const UserCard = ({ user }) => {
-  const [showDetails, setShowDetails] = useState(false);
+const statusStyles = {
+  active: "text-emerald-700 bg-emerald-50 border-emerald-200",
+  inactive: "text-slate-500 bg-slate-100 border-slate-200",
+  suspended: "text-red-700 bg-red-50 border-red-200",
+};
+
+const UserCard = ({ user, onEdit }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const roleClass = roleStyles[user.role] || "bg-gray-50 text-gray-700 border-gray-200";
+  const statusKey = user.status ? user.status.toLowerCase() : "inactive";
+  const statusClass = statusStyles[statusKey] || statusStyles.inactive;
+  const StatusIcon = statusKey === "active" ? CheckCircle : XCircle;
+  const getTeamHeadDisplay = () => {
+    if (user.teamHead && typeof user.teamHead === 'object' && user.teamHead.name) {
+      return <span className="font-semibold text-gray-800">{user.teamHead.name}</span>;
+    }
+    if (user.teamHeadId) {
+       return <span className="font-mono text-xs text-gray-500">ID: {user.teamHeadId}</span>;
+    }
+    return <span className="text-gray-400 italic">No Team Head</span>;
+  };
 
   return (
-    <div
-      className="
-        bg-white/70 backdrop-blur-md border border-gray-200
-        shadow-lg p-5 rounded-2xl transition-all duration-300
-        hover:shadow-2xl hover:-translate-y-1 flex flex-col gap-3
-      "
+    <motion.div 
+      layout
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`
+        group relative bg-white border rounded-xl overflow-hidden transition-all duration-300 w-full
+        ${isExpanded 
+          ? "border-indigo-500/30 shadow-lg ring-1 ring-indigo-500/10 z-10" 
+          : "border-gray-200 hover:border-indigo-300 hover:shadow-md"
+        }
+      `}
     >
-      {/* TOP SECTION */}
-      <div className="flex justify-between items-start">
-        <div className="space-y-1">
-          <p className="text-lg font-semibold text-gray-800">
-            {user.name}
-          </p>
-          <p className="text-gray-500 text-sm">{user.email}</p>
-          <p className="text-gray-500 text-sm">{user.phone}</p>
+      <div 
+        className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-4 w-full md:w-[40%]">
+          <div className={`
+            w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 shadow-sm
+            ${statusKey === 'active' 
+              ? 'bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-700' 
+              : 'bg-gray-100 text-gray-500'}
+          `}>
+            {user.name ? user.name.charAt(0).toUpperCase() : "?"}
+          </div>
+          
+          <div className="flex flex-col overflow-hidden">
+            <h3 className="text-gray-900 font-semibold text-sm md:text-base leading-tight truncate">
+              {user.name}
+            </h3>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-0.5 truncate">
+              <Mail className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate">{user.email}</span>
+            </div>
+          </div>
         </div>
-
-        {/* ROLE + BUTTON */}
-        <div className="flex flex-col items-end gap-2">
-          <span
-            className={`px-3 py-1 text-xs font-medium rounded-full border ${roleStyles[user.role]}`}
-          >
-            {user.role.toUpperCase()}
+        <div className="flex items-center md:justify-center w-full md:w-[20%] pl-14 md:pl-0">
+          <span className={`
+            flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${statusClass}
+          `}>
+            <StatusIcon className="w-3.5 h-3.5" />
+            <span className="capitalize">{statusKey}</span>
           </span>
-
-          <button
-            onClick={() => setShowDetails(!showDetails)}
-            className="
-              text-sm font-medium text-blue-600 hover:text-blue-800
-              hover:underline transition
-            "
-          >
-            {showDetails ? "Hide Details" : "See More"}
-          </button>
+        </div>
+        <div className="flex items-center justify-end gap-2 w-full md:w-[40%]">
+            
+            {/* Update / Edit Icon */}
+            <button
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  onEdit && onEdit(user); 
+                }}
+                className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100"
+                title="Update Information"
+            >
+                <Edit3 className="w-4 h-4" />
+            </button>
+            <button
+                className={`
+                flex items-center gap-1 pl-3 pr-2 py-1.5 rounded-lg text-xs font-medium transition-all border
+                ${isExpanded 
+                    ? "bg-gray-100 text-gray-900 border-gray-200" 
+                    : "bg-white text-indigo-600 border-transparent hover:bg-indigo-50"}
+                `}
+            >
+                {isExpanded ? "Hide Details" : "See More"}
+                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
         </div>
       </div>
-
-      {/* DETAILS SECTION WITH ANIMATION */}
       <AnimatePresence>
-        {showDetails && (
+        {isExpanded && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25 }}
-            className="mt-3 border-t pt-3 text-sm text-gray-700 space-y-1"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="border-t border-gray-100 bg-gray-50/50"
           >
-            <p>
-              <span className="font-semibold">Password:</span> {user.password}
-            </p>
-            <p>
-              <span className="font-semibold">Status:</span> {user.status}
-            </p>
+            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Contact</p>
+                <div className="space-y-2 mt-1">
+                  <p className="text-gray-900 font-medium">{user.name}</p>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Mail className="w-3.5 h-3.5 text-gray-400" />
+                    <span>{user.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Phone className="w-3.5 h-3.5 text-gray-400" />
+                    <span>{user.phone || "No phone linked"}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Role</p>
+                <div className="flex items-start">
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border ${roleClass}`}>
+                    <Shield className="w-3.5 h-3.5" />
+                    {user.role ? user.role.toUpperCase() : "UNDEFINED"}
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Reporting To</p>
+                <div className="flex items-center gap-2 mt-1">
+                    <div className="p-1.5 bg-white rounded-md border border-gray-200 text-gray-400 shadow-sm">
+                        <Briefcase className="w-4 h-4" />
+                    </div>
+                    <div>
+                        {getTeamHeadDisplay()}
+                    </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">System</p>
+                <div className="space-y-1">
+                    <p className="text-gray-500 text-xs">
+                        Current Status: <span className={`font-medium ${statusKey === 'active' ? 'text-emerald-600' : 'text-red-500'}`}>{user.status}</span>
+                    </p>
+                </div>
+              </div>
+
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 };
 

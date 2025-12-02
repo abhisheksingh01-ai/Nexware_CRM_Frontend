@@ -64,18 +64,24 @@ const UsersPage = () => {
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto min-h-screen space-y-8 pb-20 overflow-hidden">
-      
       {/* Header */}
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
           Team Management
         </h1>
-        <p className="text-gray-500">Manage your admins, team heads, and agents.</p>
+        <p className="text-gray-500">
+          Manage your admins, team heads, and agents.
+        </p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard title="Total Users" count={users.length} icon={UsersIcon} color="indigo" />
+        <StatsCard
+          title="Total Users"
+          count={users.length}
+          icon={UsersIcon}
+          color="indigo"
+        />
         <StatsCard
           title="Subadmins"
           count={users.filter((u) => u.role === "subadmin").length}
@@ -98,7 +104,6 @@ const UsersPage = () => {
 
       {/* Action Bar */}
       <div className="sticky top-4 z-30 bg-white/90 backdrop-blur-xl p-4 rounded-2xl border border-gray-200 shadow-md flex flex-col md:flex-row justify-between items-center gap-4">
-
         {/* Search Input */}
         <div className="relative w-full md:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -121,6 +126,7 @@ const UsersPage = () => {
       </div>
 
       {/* Users Grid */}
+      {/* Users List */}
       <div className="min-h-[300px]">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-64 animate-pulse">
@@ -128,10 +134,13 @@ const UsersPage = () => {
             <p className="text-gray-400 font-medium">Loading team data...</p>
           </div>
         ) : filteredUsers.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-6 overflow-hidden">
+          <div className="flex flex-col gap-5">
             {filteredUsers.map((user) => (
-              <div key={user._id || user.id} className="h-full">
-                <UserCard user={user} fixOverflow={true} />
+              <div
+                key={user._id || user.id}
+                className="w-full bg-white/70 backdrop-blur-md border border-gray-200 shadow-md rounded-2xl p-4 hover:shadow-lg transition-all"
+              >
+                <UserCard user={user} fixOverflow={false} />
               </div>
             ))}
           </div>
@@ -140,7 +149,9 @@ const UsersPage = () => {
             <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm">
               <Search className="w-6 h-6 text-gray-400" />
             </div>
-            <h3 className="text-gray-900 font-semibold text-lg">No members found</h3>
+            <h3 className="text-gray-900 font-semibold text-lg">
+              No members found
+            </h3>
             <p className="text-gray-500 text-sm mt-1">
               We couldn't find anyone matching "{search}"
             </p>
