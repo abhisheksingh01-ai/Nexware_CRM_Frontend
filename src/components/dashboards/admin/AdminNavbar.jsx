@@ -1,9 +1,8 @@
-// src/components/adminDashboard/AdminNavbar.jsx
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 
-export default function AdminNavbar({ title = "Admin Dashboard", subtitle = "" }) {
+export default function AdminNavbar({ title = "", subtitle = "" }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();

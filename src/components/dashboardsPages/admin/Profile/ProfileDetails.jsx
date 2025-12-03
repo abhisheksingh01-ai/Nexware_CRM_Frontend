@@ -5,8 +5,10 @@ import ChangePasswordModal from "./ChangePasswordModal";
 import { User, Mail, Phone, Briefcase, Activity, Users } from "lucide-react";
 import api from "../../../../api/api";
 import { useAuthStore } from "../../../../store/authStore";
+import { useNavigate } from "react-router-dom";
 
 const ProfileDetails = ({ user }) => {
+  const navigate = useNavigate();
   const [showChangePassword, setShowChangePassword] = useState(false);
   const { user: authUser } = useAuthStore();
   const [profile, setProfile] = useState(user);
@@ -28,7 +30,7 @@ const ProfileDetails = ({ user }) => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          id: profile._id,    
+          id: profile._id,
           name: profile.name,
           email: profile.email,
           phone: profile.phone,
@@ -59,9 +61,13 @@ const ProfileDetails = ({ user }) => {
           </p>
         </div>
         <div className="flex gap-3">
-          <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 text-sm font-medium hover:bg-gray-50">
+          <button
+            onClick={() => navigate(-1)}
+            className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 text-sm font-medium hover:bg-gray-50"
+          >
             Cancel
           </button>
+
           <button
             onClick={handleSaveChanges}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-sm"
@@ -92,29 +98,52 @@ const ProfileDetails = ({ user }) => {
                   label="Full Name"
                   value={profile.name}
                   icon={User}
-                  onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, name: e.target.value })
+                  }
                 />
                 <ProfileField
                   label="Email Address"
                   value={profile.email}
                   icon={Mail}
-                  onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, email: e.target.value })
+                  }
                 />
                 <ProfileField
                   label="Phone Number"
                   value={profile.phone}
                   icon={Phone}
-                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, phone: e.target.value })
+                  }
                 />
-                <ProfileField label="Role" value={profile.role} icon={Briefcase} disabled />
-                <ProfileField label="Status" value={profile.status} icon={Activity} disabled />
-                <ProfileField label="Team Head" value={profile.teamHeadName} icon={Users} disabled />
+                <ProfileField
+                  label="Role"
+                  value={profile.role}
+                  icon={Briefcase}
+                  disabled
+                />
+                <ProfileField
+                  label="Status"
+                  value={profile.status}
+                  icon={Activity}
+                  disabled
+                />
+                <ProfileField
+                  label="Team Head"
+                  value={profile.teamHeadName}
+                  icon={Users}
+                  disabled
+                />
               </div>
 
               {/* Security Section */}
               <div className="mt-8 pt-6 border-t border-gray-100">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium text-gray-900">Security</h3>
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Security
+                  </h3>
                   <button
                     className="text-sm text-indigo-600 font-medium hover:text-indigo-700"
                     onClick={() => setShowChangePassword(true)}
@@ -125,7 +154,9 @@ const ProfileDetails = ({ user }) => {
               </div>
 
               {showChangePassword && (
-                <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
+                <ChangePasswordModal
+                  onClose={() => setShowChangePassword(false)}
+                />
               )}
             </div>
           </div>
