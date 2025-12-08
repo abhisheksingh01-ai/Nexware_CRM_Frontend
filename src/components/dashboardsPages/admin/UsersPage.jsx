@@ -18,13 +18,42 @@ import { useAuthStore } from "../../../store/authStore";
 
 const UsersPage = () => {
   const { user } = useAuthStore();
-
-  // State
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editUser, setEditUser] = useState(null);
+
+  const handleDeleteUser = async (userId) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this user?"
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const res = await fetch(api.User.AdminDelete, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({ id: userId }),
+      });
+
+      const data = await res.json();
+      console.log(data)
+
+      if (res.ok) {
+        alert(data.message);
+        // update state if needed
+      } else {
+        alert(data.message || "Failed to delete user");
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert("Error deleting user");
+    }
+  };
 
   // Fetch users from API
   const fetchUsers = async () => {
@@ -139,7 +168,11 @@ const UsersPage = () => {
                 key={user._id || user.id}
                 className="w-full bg-white/70 backdrop-blur-md border border-gray-200 shadow-md rounded-2xl p-4 hover:shadow-lg transition-all"
               >
-                <UserCard user={user} onEdit={(u) => setEditUser(u)} />
+                <UserCard
+                  user={user}
+                  onEdit={(u) => setEditUser(u)}
+                  onDelete={(id) => handleDeleteUser(id)}
+                />
               </div>
             ))}
           </div>
@@ -165,17 +198,10 @@ const UsersPage = () => {
       </div>
 
       {/* Modals */}
-      {showAddModal && (
-        <AddUserModal
-          onClose={() => setShowAddModal(false)}
-        />
-      )}
+      {showAddModal && <AddUserModal onClose={() => setShowAddModal(false)} />}
 
       {editUser && (
-        <UserEditModal
-          user={editUser}
-          onClose={() => setEditUser(null)}
-        />
+        <UserEditModal user={editUser} onClose={() => setEditUser(null)} />
       )}
     </div>
   );
