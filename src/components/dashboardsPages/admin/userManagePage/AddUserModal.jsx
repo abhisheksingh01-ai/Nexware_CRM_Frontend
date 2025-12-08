@@ -154,9 +154,6 @@ const Icons = {
     </svg>
   ),
 };
-
-// --- FIX: Component Moved Outside ---
-// This prevents the input from losing focus on every keystroke
 const InputField = ({ icon: Icon, ...props }) => (
   <div className="relative group">
     {/* pointer-events-none ensures clicking the icon still focuses the input */}

@@ -12,6 +12,7 @@ import {
 import StatsCard from "./userManagePage/StatsCard";
 import UserCard from "./userManagePage/UserCard";
 import AddUserModal from "./userManagePage/AddUserModal";
+import UserEditModal from "./userManagePage/UserEditModal";
 import api from "../../../api/api";
 import { useAuthStore } from "../../../store/authStore";
 
@@ -19,10 +20,11 @@ const UsersPage = () => {
   const { user } = useAuthStore();
 
   // State
-  const [showModal, setShowModal] = useState(false);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editUser, setEditUser] = useState(null);
 
   // Fetch users from API
   const fetchUsers = async () => {
@@ -39,7 +41,6 @@ const UsersPage = () => {
       });
 
       const data = await res.json();
-      // Ensure we always have an array
       setUsers(Array.isArray(data) ? data : data.users || []);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -52,7 +53,6 @@ const UsersPage = () => {
     fetchUsers();
   }, [user?.token]);
 
-  // Filter users based on search term
   const filteredUsers = users.filter((u) => {
     const term = search.toLowerCase();
     return (
@@ -118,14 +118,13 @@ const UsersPage = () => {
 
         {/* Add User Button */}
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => setShowAddModal(true)}
           className="flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow hover:shadow-lg transition-all active:scale-95 w-full md:w-auto"
         >
           <UserPlus className="w-4 h-4" /> Add Member
         </button>
       </div>
 
-      {/* Users Grid */}
       {/* Users List */}
       <div className="min-h-[300px]">
         {loading ? (
@@ -140,7 +139,7 @@ const UsersPage = () => {
                 key={user._id || user.id}
                 className="w-full bg-white/70 backdrop-blur-md border border-gray-200 shadow-md rounded-2xl p-4 hover:shadow-lg transition-all"
               >
-                <UserCard user={user} fixOverflow={false} />
+                <UserCard user={user} onEdit={(u) => setEditUser(u)} />
               </div>
             ))}
           </div>
@@ -165,8 +164,19 @@ const UsersPage = () => {
         )}
       </div>
 
-      {/* Add User Modal */}
-      {showModal && <AddUserModal onClose={() => setShowModal(false)} />}
+      {/* Modals */}
+      {showAddModal && (
+        <AddUserModal
+          onClose={() => setShowAddModal(false)}
+        />
+      )}
+
+      {editUser && (
+        <UserEditModal
+          user={editUser}
+          onClose={() => setEditUser(null)}
+        />
+      )}
     </div>
   );
 };
