@@ -4,7 +4,7 @@ const api = {
   Auth: {
     Login: BaseUrl + "auth/login",
     Register: BaseUrl + "auth/register-secret",
-    AdminCheckLastLogin: BaseUrl + "auth/lastlogin"
+    AdminCheckLastLogin: BaseUrl + "auth/lastlogin",
   },
   User: {
     GetOwnProfile: BaseUrl + "users/me",
@@ -13,9 +13,16 @@ const api = {
     AdminUpdate: BaseUrl + "users/adminUpdate",
     UpdateOwnProfile: BaseUrl + "users/update",
     AdminUpdateStatus: BaseUrl + "users/status",
-    AdminUpdateAnyUserPassword : BaseUrl + "users/password",
+    AdminUpdateAnyUserPassword: BaseUrl + "users/password",
     AdminDelete: BaseUrl + "users/delete",
   },
+  Leads: {
+    Create: BaseUrl + "leads/",
+    GetAll: BaseUrl + "leads/leads-list", 
+    GetDetails: BaseUrl + "leads/lead-details", 
+    Update: BaseUrl + "leads/updateLead", 
+    Delete: BaseUrl + "leads/deleteLead", 
+  }
 };
 
 export default api;
