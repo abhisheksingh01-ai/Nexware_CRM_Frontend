@@ -23,7 +23,7 @@ const LeadTable = ({ filteredLeads }) => {
             <tr key={lead._id} className="hover:bg-slate-50/80 transition-colors">
               <td className="px-6 py-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-medium text-sm">
+                  <div className="h-9 w-9 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-medium text-sm">
                     {lead.name.charAt(0)}
                   </div>
                   <div>
