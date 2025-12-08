@@ -3,9 +3,6 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../../../../api/api";
 import { useAuthStore } from "../../../../store/authStore";
-// import bcrypt from "bcryptjs";
-
-// --- Reusable SVG Icons ---
 const Icons = {
   Close: () => (
     <svg
