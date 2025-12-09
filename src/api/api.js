@@ -19,7 +19,7 @@ const api = {
   Leads: {
     Create: BaseUrl + "leads/",
     GetAll: BaseUrl + "leads/leads-list", 
-    GetDetails: BaseUrl + "leads/lead-details", 
+    GetDetails: (leadId) => `${BaseUrl}leads/lead-details?leadId=${leadId}`, 
     Update: BaseUrl + "leads/updateLead", 
     Delete: BaseUrl + "leads/deleteLead", 
   }
