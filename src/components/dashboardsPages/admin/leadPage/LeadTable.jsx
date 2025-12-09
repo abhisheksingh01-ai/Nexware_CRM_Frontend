@@ -14,24 +14,49 @@ import {
   Mail,
   CheckCircle2,
   Trash2,
+  Save
 } from "lucide-react";
 import { useAuthStore } from "../../../../store/authStore";
 import { getStatusColor, getStatusIcon } from "./leadUtils";
 
-// --- HELPER COMPONENT: INFO CARD ---
-const InfoCard = ({ icon: Icon, iconColor, label, value, subValue }) => (
+// --- HELPER COMPONENT: INFO CARD (Modified to support Inputs) ---
+const InfoCard = ({ icon: Icon, iconColor, label, value, subValue, isEditable, name, onChange, type = "text", options }) => (
   <div className="flex items-start p-3 bg-gray-50/50 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
     <div className={`p-2 rounded-lg ${iconColor} bg-opacity-10 shrink-0`}>
       <Icon className={`w-5 h-5 ${iconColor.replace("bg-", "text-")}`} />
     </div>
-    <div className="ml-3 overflow-hidden">
+    <div className="ml-3 overflow-hidden w-full">
       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
         {label}
       </p>
-      <p className="text-sm font-semibold text-gray-900 truncate">
-        {value || "N/A"}
-      </p>
-      {subValue && <p className="text-xs text-gray-400 mt-0.5">{subValue}</p>}
+      
+      {/* If Editable, show Input/Select. If not, show Text */}
+      {isEditable ? (
+        type === "select" ? (
+           <select
+            name={name}
+            value={value}
+            onChange={onChange}
+            className="w-full mt-1 p-1 bg-white border border-gray-300 rounded text-sm font-semibold text-gray-900 focus:outline-none focus:border-blue-500"
+          >
+            {options && options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          </select>
+        ) : (
+          <input 
+            type={type}
+            name={name}
+            value={value || ""}
+            onChange={onChange}
+            className="w-full mt-1 p-1 bg-white border-b border-gray-300 focus:border-blue-500 text-sm font-semibold text-gray-900 focus:outline-none bg-transparent"
+          />
+        )
+      ) : (
+        <p className="text-sm font-semibold text-gray-900 truncate">
+          {value || "N/A"}
+        </p>
+      )}
+
+      {subValue && !isEditable && <p className="text-xs text-gray-400 mt-0.5">{subValue}</p>}
     </div>
   </div>
 );
@@ -45,8 +70,12 @@ const LeadDetailsPopup = ({
   onSuccess,
 }) => {
   const [leadDetails, setLeadDetails] = useState(null);
+  const [formData, setFormData] = useState({}); // State for editable fields
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Options for Status
+  const statusOptions = ["New", "Pending", "In Progress", "Completed", "Cancelled", "Follow Up"];
 
   useEffect(() => {
     const fetchLeadDetails = async () => {
@@ -55,8 +84,21 @@ const LeadDetailsPopup = ({
         const res = await axios.get(api.Leads.GetDetails(leadId), {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log(res.data)
-        setLeadDetails(res.data.data);
+        const data = res.data.data;
+        setLeadDetails(data);
+
+        // Pre-fill form data for editing
+        setFormData({
+          name: data.name || "",
+          mobile: data.mobile || "", // UI uses mobile
+          address: data.address || "",
+          service: data.service || "",
+          source: data.source || "",
+          status: data.status || "Pending",
+          assignedTo: typeof data.assignedTo === 'object' ? data.assignedTo?._id : data.assignedTo || "",
+          remarks: data.remarks || ""
+        });
+
       } catch (err) {
         console.error("Failed to fetch details:", err);
       } finally {
@@ -65,6 +107,12 @@ const LeadDetailsPopup = ({
     };
     fetchLeadDetails();
   }, [leadId, token]);
+
+  // Handle Input Change
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   const handleDelete = async () => {
     if (
@@ -82,21 +130,14 @@ const LeadDetailsPopup = ({
       }
 
       setActionLoading(true);
-
-      // --- FIX APPLIED HERE ---
-      // Axios DELETE accepts config as the 2nd argument.
-      // Data must be inside the 'data' key.
       await axios.delete(api.Leads.AdminDelete, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        data: { leadId: leadId }, // Body goes here for DELETE requests
+        data: { leadId: leadId }, 
       });
-
-      // Refresh the table
       if (onSuccess) onSuccess();
-
-      onClose(); // Close the popup
+      onClose(); 
     } catch (err) {
       console.error("Failed to delete lead:", err);
       alert("Error deleting lead");
@@ -105,10 +146,56 @@ const LeadDetailsPopup = ({
     }
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     console.log("Update clicked for:", leadId);
-    // Add your update logic here
+
+    try {
+      if (!token) {
+        alert("Token missing!");
+        return;
+      }
+
+      setActionLoading(true);
+
+      // --- FIXED PAYLOAD ---
+      // Matching your successful JSON structure
+      const payload = {
+        id: leadId,              // Only 'id' (removed leadId)
+        name: formData.name,
+        phone: formData.mobile,  // Mapping UI 'mobile' to API 'phone'
+        address: formData.address,
+        service: formData.service,
+        source: formData.source,
+        status: formData.status,
+        remarks: formData.remarks
+      };
+
+      // Only add assignedTo if it has a value (prevents 400 Bad Request on empty strings)
+      if (formData.assignedTo) {
+        payload.assignedTo = formData.assignedTo;
+      }
+
+      await axios.put(
+        api.Leads.Update,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        }
+      );
+
+      if (onSuccess) onSuccess();
+      onClose();
+
+    } catch (error) {
+      console.error("Update Error:", error);
+      alert("Failed to update lead: " + (error.response?.data?.message || error.message));
+    } finally {
+      setActionLoading(false);
+    }
   };
+
 
   if (!leadId) return null;
 
@@ -119,14 +206,14 @@ const LeadDetailsPopup = ({
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-white">
           <div>
             <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-              Lead Details
+              Edit Lead Details
               {leadDetails && (
                 <span
                   className={`text-xs px-2.5 py-0.5 rounded-full border ${getStatusColor(
-                    leadDetails.status
+                    formData.status // Use formData status here to show instant change
                   )}`}
                 >
-                  {leadDetails.status}
+                  {formData.status}
                 </span>
               )}
             </h2>
@@ -159,27 +246,25 @@ const LeadDetailsPopup = ({
                     Contact Information
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* EDITABLE FIELDS */}
                     <InfoCard
-                      icon={User}
-                      iconColor="bg-blue-100 text-blue-600"
+                      icon={User} iconColor="bg-blue-100 text-blue-600"
                       label="Full Name"
-                      value={leadDetails.name}
+                      isEditable={true} name="name" value={formData.name} onChange={handleChange}
                     />
                     <InfoCard
-                      icon={Phone}
-                      iconColor="bg-green-100 text-green-600"
+                      icon={Phone} iconColor="bg-green-100 text-green-600"
                       label="Mobile Number"
-                      value={leadDetails.mobile}
+                      isEditable={true} name="mobile" value={formData.mobile} onChange={handleChange}
                     />
                     <InfoCard
-                      icon={MapPin}
-                      iconColor="bg-red-100 text-red-600"
+                      icon={MapPin} iconColor="bg-red-100 text-red-600"
                       label="Address"
-                      value={leadDetails.address}
+                      isEditable={true} name="address" value={formData.address} onChange={handleChange}
                     />
+                    {/* READ ONLY */}
                     <InfoCard
-                      icon={Mail}
-                      iconColor="bg-purple-100 text-purple-600"
+                      icon={Mail} iconColor="bg-purple-100 text-purple-600"
                       label="Email"
                       value={leadDetails.email || "No email provided"}
                     />
@@ -193,64 +278,61 @@ const LeadDetailsPopup = ({
                     Project Details
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* EDITABLE FIELDS */}
                     <InfoCard
-                      icon={Briefcase}
-                      iconColor="bg-orange-100 text-orange-600"
+                      icon={Briefcase} iconColor="bg-orange-100 text-orange-600"
                       label="Service Required"
-                      value={leadDetails.service}
+                      isEditable={true} name="service" value={formData.service} onChange={handleChange}
                     />
                     <InfoCard
-                      icon={Tag}
-                      iconColor="bg-indigo-100 text-indigo-600"
+                      icon={Tag} iconColor="bg-indigo-100 text-indigo-600"
                       label="Source"
-                      value={leadDetails.source}
-                    />
-
-                    <InfoCard
-                      icon={User}
-                      iconColor="bg-teal-100 text-teal-600"
-                      label="Assigned To"
-                      value={leadDetails.assignedTo?.name}
-                      subValue={leadDetails.assignedTo?.email}
+                      isEditable={true} name="source" value={formData.source} onChange={handleChange}
                     />
                     <InfoCard
-                      icon={Clock}
-                      iconColor="bg-gray-100 text-gray-600"
+                      icon={User} iconColor="bg-teal-100 text-teal-600"
+                      label="Assigned To (ID)"
+                      isEditable={true} name="assignedTo" value={formData.assignedTo} onChange={handleChange}
+                    />
+                    {/* STATUS DROPDOWN */}
+                    <InfoCard
+                      icon={CheckCircle2} iconColor="bg-blue-100 text-blue-600"
+                      label="Status"
+                      isEditable={true} type="select" options={statusOptions}
+                      name="status" value={formData.status} onChange={handleChange}
+                    />
+                    
+                    {/* READ ONLY TIMESTAMPS */}
+                    <InfoCard
+                      icon={Clock} iconColor="bg-gray-100 text-gray-600"
                       label="Created At"
-                      value={new Date(
-                        leadDetails.createdAt
-                      ).toLocaleDateString()}
-                      subValue={new Date(
-                        leadDetails.createdAt
-                      ).toLocaleTimeString()}
+                      value={new Date(leadDetails.createdAt).toLocaleDateString()}
+                      subValue={new Date(leadDetails.createdAt).toLocaleTimeString()}
                     />
-
                     <InfoCard
-                      icon={Clock}
-                      iconColor="bg-blue-100 text-blue-600"
+                      icon={Clock} iconColor="bg-gray-100 text-gray-600"
                       label="Last Updated"
-                      value={new Date(
-                        leadDetails.updatedAt
-                      ).toLocaleDateString()}
-                      subValue={new Date(
-                        leadDetails.updatedAt
-                      ).toLocaleTimeString()}
+                      value={new Date(leadDetails.updatedAt).toLocaleDateString()}
+                      subValue={new Date(leadDetails.updatedAt).toLocaleTimeString()}
                     />
                   </div>
                 </div>
 
-                {/* Remarks */}
-                {leadDetails.remarks && (
-                  <div className="bg-yellow-50/50 border border-yellow-100 rounded-xl p-4">
+                {/* Remarks (Editable Text Area) */}
+                <div className="bg-yellow-50/50 border border-yellow-100 rounded-xl p-4">
                     <h4 className="text-xs font-bold text-yellow-700 uppercase mb-2 flex items-center">
                       <CheckCircle2 className="w-3 h-3 mr-1.5" />
                       Remarks
                     </h4>
-                    <p className="text-sm text-gray-700 leading-relaxed">
-                      {leadDetails.remarks}
-                    </p>
-                  </div>
-                )}
+                    <textarea 
+                        name="remarks"
+                        value={formData.remarks}
+                        onChange={handleChange}
+                        className="w-full bg-transparent border-b border-yellow-200 text-sm text-gray-700 leading-relaxed focus:outline-none focus:border-yellow-500 min-h-[60px]"
+                        placeholder="Enter remarks..."
+                    />
+                </div>
+
               </div>
             )
           )}
@@ -277,21 +359,26 @@ const LeadDetailsPopup = ({
             )}
           </div>
 
-          {/* Right: Standard Actions */}
+          {/* Right: Actions */}
           <div className="flex gap-3">
             <button
               onClick={onClose}
               className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
             >
-              Close
+              Cancel
             </button>
+            {/* UPDATE BUTTON */}
             <button
               onClick={handleUpdate}
               disabled={loading || actionLoading}
               className="px-5 py-2.5 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 shadow-lg shadow-slate-900/20 flex items-center gap-2 transition-all transform active:scale-95"
             >
-              <Edit3 className="w-4 h-4" />
-              Update
+              {actionLoading ? (
+                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                 <Save className="w-4 h-4" /> 
+              )}
+              Save Changes
             </button>
           </div>
         </div>
@@ -307,8 +394,6 @@ const LeadTable = () => {
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const [selectedLeadId, setSelectedLeadId] = useState(null);
-
-  // Check Role: Assumes backend sends 'admin' (lowercase)
   const isAdmin = authUser?.role === "admin";
 
   const fetchLeads = async () => {
@@ -343,37 +428,6 @@ const LeadTable = () => {
   useEffect(() => {
     fetchLeads();
   }, []);
-
-  // Use this if you add a delete button directly to the row
-  const handleDeleteRow = async (e, id) => {
-    e.stopPropagation();
-
-    if (!window.confirm("Are you sure you want to delete this lead?")) {
-      return;
-    }
-
-    try {
-      const token = authUser?.token;
-      if (!token) {
-        alert("Token missing!");
-        return;
-      }
-
-      // --- FIX APPLIED HERE ALSO ---
-      await axios.delete(api.Leads.AdminDelete, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        data: { leadId: id }, // Body goes here
-      });
-
-      // Refresh the table list immediately after deleting
-      fetchLeads();
-    } catch (err) {
-      console.error("Failed to delete lead:", err);
-      alert("Error deleting lead");
-    }
-  };
 
   if (loading) {
     return (
