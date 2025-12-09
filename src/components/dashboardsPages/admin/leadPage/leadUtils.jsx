@@ -1,5 +1,6 @@
 import { CheckCircle2, XCircle, Clock } from "lucide-react";
 
+// Returns background, text, and border colors based on status
 export const getStatusColor = (status) => {
   switch (status) {
     case "Won":
@@ -10,11 +11,14 @@ export const getStatusColor = (status) => {
       return "bg-amber-50 text-amber-700 border-amber-100";
     case "New":
       return "bg-blue-50 text-blue-600 border-blue-100";
+    case "Not Interested":
+      return "bg-gray-100 text-gray-600 border-gray-200";
     default:
       return "bg-gray-100 text-gray-600 border-gray-200";
   }
 };
 
+// Returns an icon component based on status
 export const getStatusIcon = (status) => {
   switch (status) {
     case "Won":
@@ -23,6 +27,10 @@ export const getStatusIcon = (status) => {
       return <XCircle className="w-3 h-3 mr-1" />;
     case "Follow Up":
       return <Clock className="w-3 h-3 mr-1" />;
+    case "New":
+      return <div className="w-1.5 h-1.5 rounded-full bg-blue-600 mr-2" />;
+    case "Not Interested":
+      return <div className="w-1.5 h-1.5 rounded-full bg-gray-600 mr-2" />;
     default:
       return <div className="w-1.5 h-1.5 rounded-full bg-current mr-2" />;
   }
