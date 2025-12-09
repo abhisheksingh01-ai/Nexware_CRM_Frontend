@@ -9,7 +9,6 @@ import {
   MapPin,
   Tag,
   Briefcase,
-  Edit3,
   Clock,
   Mail,
   CheckCircle2,
@@ -19,7 +18,7 @@ import {
 import { useAuthStore } from "../../../../store/authStore";
 import { getStatusColor, getStatusIcon } from "./leadUtils";
 
-// --- HELPER COMPONENT: INFO CARD (Modified to support Inputs) ---
+// --- HELPER COMPONENT: INFO CARD ---
 const InfoCard = ({ icon: Icon, iconColor, label, value, subValue, isEditable, name, onChange, type = "text", options }) => (
   <div className="flex items-start p-3 bg-gray-50/50 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
     <div className={`p-2 rounded-lg ${iconColor} bg-opacity-10 shrink-0`}>
@@ -30,16 +29,25 @@ const InfoCard = ({ icon: Icon, iconColor, label, value, subValue, isEditable, n
         {label}
       </p>
       
-      {/* If Editable, show Input/Select. If not, show Text */}
       {isEditable ? (
         type === "select" ? (
            <select
             name={name}
-            value={value}
+            value={value || ""}
             onChange={onChange}
-            className="w-full mt-1 p-1 bg-white border border-gray-300 rounded text-sm font-semibold text-gray-900 focus:outline-none focus:border-blue-500"
+            className="w-full mt-1 p-2 bg-white border border-gray-300 rounded-lg text-sm font-semibold text-gray-900 focus:outline-none focus:border-blue-500"
           >
-            {options && options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            <option value="">Select Option</option>
+            {options && options.map((opt, index) => {
+              // Handle Object Options {label: "Name", value: "ID"} OR Simple Strings ["New", "Pending"]
+              const optValue = typeof opt === 'object' ? opt.value : opt;
+              const optLabel = typeof opt === 'object' ? opt.label : opt;
+              return (
+                <option key={`${optValue}-${index}`} value={optValue}>
+                  {optLabel}
+                </option>
+              );
+            })}
           </select>
         ) : (
           <input 
@@ -47,7 +55,7 @@ const InfoCard = ({ icon: Icon, iconColor, label, value, subValue, isEditable, n
             name={name}
             value={value || ""}
             onChange={onChange}
-            className="w-full mt-1 p-1 bg-white border-b border-gray-300 focus:border-blue-500 text-sm font-semibold text-gray-900 focus:outline-none bg-transparent"
+            className="w-full mt-1 p-1 bg-white border-b border-gray-300 focus:border-blue-500 text-sm font-semibold text-gray-900 focus:outline-none"
           />
         )
       ) : (
@@ -70,34 +78,65 @@ const LeadDetailsPopup = ({
   onSuccess,
 }) => {
   const [leadDetails, setLeadDetails] = useState(null);
-  const [formData, setFormData] = useState({}); // State for editable fields
+  const [formData, setFormData] = useState({}); 
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Options for Status
+  // State for the Users Dropdown
+  const [assignees, setAssignees] = useState([]); 
+
   const statusOptions = ["New", "Pending", "In Progress", "Completed", "Cancelled", "Follow Up"];
 
+  // Combined Fetch Effect (Loads Lead + User List)
   useEffect(() => {
-    const fetchLeadDetails = async () => {
+    const initData = async () => {
       try {
         setLoading(true);
+
+        // 1. Fetch Lead Details
         const res = await axios.get(api.Leads.GetDetails(leadId), {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = res.data.data;
         setLeadDetails(data);
 
-        // Pre-fill form data for editing
+        // Pre-fill form
         setFormData({
           name: data.name || "",
-          mobile: data.mobile || "", // UI uses mobile
+          mobile: data.mobile || "", 
           address: data.address || "",
           service: data.service || "",
           source: data.source || "",
           status: data.status || "Pending",
+          // Handle object vs string for assignedTo
           assignedTo: typeof data.assignedTo === 'object' ? data.assignedTo?._id : data.assignedTo || "",
           remarks: data.remarks || ""
         });
+
+        // 2. Fetch Users for Dropdown
+        // Using the API endpoint you mentioned in your snippet
+        try {
+          // Fallback URL provided in case api.User.AdminGetAll isn't defined
+          const url = api.User?.AdminGetAll || "http://localhost:5000/api/auth/all-users"; 
+          
+          const userRes = await axios.get(url, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          // Handle different response structures (res.data vs res.data.data)
+          const rawUsers = Array.isArray(userRes.data) ? userRes.data : (userRes.data?.data || []);
+          
+          // Map to { label, value } for the InfoCard select
+          const userOptions = rawUsers.map(u => ({
+            label: u.name,
+            value: u._id
+          }));
+          
+          setAssignees(userOptions);
+
+        } catch (userErr) {
+          console.error("User fetch error:", userErr);
+        }
 
       } catch (err) {
         console.error("Failed to fetch details:", err);
@@ -105,35 +144,25 @@ const LeadDetailsPopup = ({
         setLoading(false);
       }
     };
-    fetchLeadDetails();
+
+    if (leadId && token) {
+      initData();
+    }
   }, [leadId, token]);
 
-  // Handle Input Change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleDelete = async () => {
-    if (
-      !window.confirm(
-        `Are you sure you want to permanently delete ${leadDetails?.name}?`
-      )
-    ) {
-      return;
-    }
+    if (!window.confirm(`Are you sure you want to permanently delete ${leadDetails?.name}?`)) return;
 
     try {
-      if (!token) {
-        alert("Token missing!");
-        return;
-      }
-
+      if (!token) { alert("Token missing!"); return; }
       setActionLoading(true);
       await axios.delete(api.Leads.AdminDelete, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         data: { leadId: leadId }, 
       });
       if (onSuccess) onSuccess();
@@ -147,22 +176,14 @@ const LeadDetailsPopup = ({
   };
 
   const handleUpdate = async () => {
-    console.log("Update clicked for:", leadId);
-
     try {
-      if (!token) {
-        alert("Token missing!");
-        return;
-      }
-
+      if (!token) { alert("Token missing!"); return; }
       setActionLoading(true);
 
-      // --- FIXED PAYLOAD ---
-      // Matching your successful JSON structure
       const payload = {
-        id: leadId,              // Only 'id' (removed leadId)
+        id: leadId,              
         name: formData.name,
-        phone: formData.mobile,  // Mapping UI 'mobile' to API 'phone'
+        phone: formData.mobile,  
         address: formData.address,
         service: formData.service,
         source: formData.source,
@@ -170,20 +191,13 @@ const LeadDetailsPopup = ({
         remarks: formData.remarks
       };
 
-      // Only add assignedTo if it has a value (prevents 400 Bad Request on empty strings)
       if (formData.assignedTo) {
         payload.assignedTo = formData.assignedTo;
       }
 
-      await axios.put(
-        api.Leads.Update,
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          }
-        }
-      );
+      await axios.put(api.Leads.Update, payload, {
+          headers: { Authorization: `Bearer ${token}` }
+      });
 
       if (onSuccess) onSuccess();
       onClose();
@@ -202,17 +216,14 @@ const LeadDetailsPopup = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+        
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-white">
           <div>
             <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
               Edit Lead Details
               {leadDetails && (
-                <span
-                  className={`text-xs px-2.5 py-0.5 rounded-full border ${getStatusColor(
-                    formData.status // Use formData status here to show instant change
-                  )}`}
-                >
+                <span className={`text-xs px-2.5 py-0.5 rounded-full border ${getStatusColor(formData.status)}`}>
                   {formData.status}
                 </span>
               )}
@@ -221,10 +232,7 @@ const LeadDetailsPopup = ({
               ID: <span className="font-mono">{leadId}</span>
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all"
-          >
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -239,6 +247,7 @@ const LeadDetailsPopup = ({
           ) : (
             leadDetails && (
               <div className="space-y-6">
+                
                 {/* Contact Info */}
                 <div>
                   <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center">
@@ -246,28 +255,10 @@ const LeadDetailsPopup = ({
                     Contact Information
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* EDITABLE FIELDS */}
-                    <InfoCard
-                      icon={User} iconColor="bg-blue-100 text-blue-600"
-                      label="Full Name"
-                      isEditable={true} name="name" value={formData.name} onChange={handleChange}
-                    />
-                    <InfoCard
-                      icon={Phone} iconColor="bg-green-100 text-green-600"
-                      label="Mobile Number"
-                      isEditable={true} name="mobile" value={formData.mobile} onChange={handleChange}
-                    />
-                    <InfoCard
-                      icon={MapPin} iconColor="bg-red-100 text-red-600"
-                      label="Address"
-                      isEditable={true} name="address" value={formData.address} onChange={handleChange}
-                    />
-                    {/* READ ONLY */}
-                    <InfoCard
-                      icon={Mail} iconColor="bg-purple-100 text-purple-600"
-                      label="Email"
-                      value={leadDetails.email || "No email provided"}
-                    />
+                    <InfoCard icon={User} iconColor="bg-blue-100 text-blue-600" label="Full Name" isEditable={true} name="name" value={formData.name} onChange={handleChange} />
+                    <InfoCard icon={Phone} iconColor="bg-green-100 text-green-600" label="Mobile Number" isEditable={true} name="mobile" value={formData.mobile} onChange={handleChange} />
+                    <InfoCard icon={MapPin} iconColor="bg-red-100 text-red-600" label="Address" isEditable={true} name="address" value={formData.address} onChange={handleChange} />
+                    <InfoCard icon={Mail} iconColor="bg-purple-100 text-purple-600" label="Email" value={leadDetails.email || "No email provided"} />
                   </div>
                 </div>
 
@@ -278,47 +269,30 @@ const LeadDetailsPopup = ({
                     Project Details
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* EDITABLE FIELDS */}
-                    <InfoCard
-                      icon={Briefcase} iconColor="bg-orange-100 text-orange-600"
-                      label="Service Required"
-                      isEditable={true} name="service" value={formData.service} onChange={handleChange}
-                    />
-                    <InfoCard
-                      icon={Tag} iconColor="bg-indigo-100 text-indigo-600"
-                      label="Source"
-                      isEditable={true} name="source" value={formData.source} onChange={handleChange}
-                    />
-                    <InfoCard
-                      icon={User} iconColor="bg-teal-100 text-teal-600"
-                      label="Assigned To (ID)"
-                      isEditable={true} name="assignedTo" value={formData.assignedTo} onChange={handleChange}
-                    />
-                    {/* STATUS DROPDOWN */}
-                    <InfoCard
-                      icon={CheckCircle2} iconColor="bg-blue-100 text-blue-600"
-                      label="Status"
-                      isEditable={true} type="select" options={statusOptions}
-                      name="status" value={formData.status} onChange={handleChange}
-                    />
+                    <InfoCard icon={Briefcase} iconColor="bg-orange-100 text-orange-600" label="Service Required" isEditable={true} name="service" value={formData.service} onChange={handleChange} />
+                    <InfoCard icon={Tag} iconColor="bg-indigo-100 text-indigo-600" label="Source" isEditable={true} name="source" value={formData.source} onChange={handleChange} />
                     
-                    {/* READ ONLY TIMESTAMPS */}
+                    {/* --- ASSIGNED TO DROPDOWN --- */}
                     <InfoCard
-                      icon={Clock} iconColor="bg-gray-100 text-gray-600"
-                      label="Created At"
-                      value={new Date(leadDetails.createdAt).toLocaleDateString()}
-                      subValue={new Date(leadDetails.createdAt).toLocaleTimeString()}
+                      icon={User} 
+                      iconColor="bg-teal-100 text-teal-600"
+                      label="Assigned To"
+                      isEditable={true} 
+                      name="assignedTo" 
+                      value={formData.assignedTo} 
+                      onChange={handleChange}
+                      type="select" 
+                      options={assignees} // Passes list of names/IDs fetched from API
                     />
-                    <InfoCard
-                      icon={Clock} iconColor="bg-gray-100 text-gray-600"
-                      label="Last Updated"
-                      value={new Date(leadDetails.updatedAt).toLocaleDateString()}
-                      subValue={new Date(leadDetails.updatedAt).toLocaleTimeString()}
-                    />
+
+                    <InfoCard icon={CheckCircle2} iconColor="bg-blue-100 text-blue-600" label="Status" isEditable={true} type="select" options={statusOptions} name="status" value={formData.status} onChange={handleChange} />
+                    
+                    <InfoCard icon={Clock} iconColor="bg-gray-100 text-gray-600" label="Created At" value={new Date(leadDetails.createdAt).toLocaleDateString()} subValue={new Date(leadDetails.createdAt).toLocaleTimeString()} />
+                    <InfoCard icon={Clock} iconColor="bg-gray-100 text-gray-600" label="Last Updated" value={new Date(leadDetails.updatedAt).toLocaleDateString()} subValue={new Date(leadDetails.updatedAt).toLocaleTimeString()} />
                   </div>
                 </div>
 
-                {/* Remarks (Editable Text Area) */}
+                {/* Remarks */}
                 <div className="bg-yellow-50/50 border border-yellow-100 rounded-xl p-4">
                     <h4 className="text-xs font-bold text-yellow-700 uppercase mb-2 flex items-center">
                       <CheckCircle2 className="w-3 h-3 mr-1.5" />
@@ -340,44 +314,19 @@ const LeadDetailsPopup = ({
 
         {/* Footer */}
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-          {/* Left: Admin Only Delete */}
           <div>
             {isUserAdmin && (
-              <button
-                onClick={handleDelete}
-                disabled={actionLoading}
-                className="px-4 py-2.5 text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 hover:text-red-700 transition-all flex items-center gap-2 disabled:opacity-50"
-              >
-                {actionLoading ? (
-                  "Deleting..."
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" /> Delete
-                  </>
-                )}
+              <button onClick={handleDelete} disabled={actionLoading} className="px-4 py-2.5 text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 hover:text-red-700 transition-all flex items-center gap-2 disabled:opacity-50">
+                {actionLoading ? "Deleting..." : <><Trash2 className="w-4 h-4" /> Delete</>}
               </button>
             )}
           </div>
-
-          {/* Right: Actions */}
           <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
-            >
+            <button onClick={onClose} className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all">
               Cancel
             </button>
-            {/* UPDATE BUTTON */}
-            <button
-              onClick={handleUpdate}
-              disabled={loading || actionLoading}
-              className="px-5 py-2.5 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 shadow-lg shadow-slate-900/20 flex items-center gap-2 transition-all transform active:scale-95"
-            >
-              {actionLoading ? (
-                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                 <Save className="w-4 h-4" /> 
-              )}
+            <button onClick={handleUpdate} disabled={loading || actionLoading} className="px-5 py-2.5 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 shadow-lg shadow-slate-900/20 flex items-center gap-2 transition-all transform active:scale-95">
+              {actionLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" /> }
               Save Changes
             </button>
           </div>
@@ -410,12 +359,8 @@ const LeadTable = () => {
         name: lead.name || "Unknown",
         mobile: lead.mobile || lead.phone || "N/A",
         status: lead.status || "Pending",
-        date:
-          lead.date || lead.createdAt
-            ? new Date(lead.date || lead.createdAt).toISOString().split("T")[0]
-            : "N/A",
+        date: lead.date || lead.createdAt ? new Date(lead.date || lead.createdAt).toISOString().split("T")[0] : "N/A",
       }));
-
       setLeads(mappedLeads);
     } catch (err) {
       console.error("Failed to fetch leads:", err);
@@ -429,13 +374,7 @@ const LeadTable = () => {
     fetchLeads();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-48">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
-      </div>
-    );
-  }
+  if (loading) return <div className="flex justify-center items-center h-48"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div></div>;
 
   const displayedLeads = showAll ? leads : leads.slice(0, 4);
 
@@ -453,41 +392,21 @@ const LeadTable = () => {
               <th className="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
-
           <tbody className="divide-y divide-gray-100">
             {displayedLeads.map((lead, index) => (
-              <tr
-                key={lead.id}
-                className="hover:bg-slate-50/80 transition-all duration-200 group"
-              >
-                <td className="px-6 py-4 text-sm text-gray-400 font-medium">
-                  {index + 1}
-                </td>
+              <tr key={lead.id} className="hover:bg-slate-50/80 transition-all duration-200 group">
+                <td className="px-6 py-4 text-sm text-gray-400 font-medium">{index + 1}</td>
+                <td className="px-6 py-4"><div className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{lead.name}</div></td>
+                <td className="px-6 py-4 text-sm text-gray-600 font-mono tracking-tight">{lead.mobile}</td>
                 <td className="px-6 py-4">
-                  <div className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                    {lead.name}
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-600 font-mono tracking-tight">
-                  {lead.mobile}
-                </td>
-                <td className="px-6 py-4">
-                  <span
-                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border shadow-sm ${getStatusColor(
-                      lead.status
-                    )}`}
-                  >
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border shadow-sm ${getStatusColor(lead.status)}`}>
                     {getStatusIcon(lead.status)}
                     <span className="ml-1.5">{lead.status}</span>
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">{lead.date}</td>
                 <td className="px-6 py-4 text-right flex justify-end gap-2">
-                  <button
-                    className="text-gray-400 hover:text-slate-900 hover:bg-slate-100 p-2 rounded-lg transition-all"
-                    onClick={() => setSelectedLeadId(lead.id)}
-                    title="View Details"
-                  >
+                  <button className="text-gray-400 hover:text-slate-900 hover:bg-slate-100 p-2 rounded-lg transition-all" onClick={() => setSelectedLeadId(lead.id)} title="View Details">
                     <MoreHorizontal className="w-5 h-5" />
                   </button>
                 </td>
@@ -496,28 +415,14 @@ const LeadTable = () => {
           </tbody>
         </table>
       </div>
-
       {leads.length > 4 && !showAll && (
         <div className="flex justify-center pt-2">
-          <button
-            onClick={() => setShowAll(true)}
-            className="px-6 py-2 text-sm font-medium text-slate-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg shadow-sm transition-all"
-          >
+          <button onClick={() => setShowAll(true)} className="px-6 py-2 text-sm font-medium text-slate-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg shadow-sm transition-all">
             Show All ({leads.length})
           </button>
         </div>
       )}
-
-      {/* Render Popup */}
-      {selectedLeadId && (
-        <LeadDetailsPopup
-          leadId={selectedLeadId}
-          token={authUser?.token}
-          isUserAdmin={isAdmin}
-          onClose={() => setSelectedLeadId(null)}
-          onSuccess={fetchLeads}
-        />
-      )}
+      {selectedLeadId && <LeadDetailsPopup leadId={selectedLeadId} token={authUser?.token} isUserAdmin={isAdmin} onClose={() => setSelectedLeadId(null)} onSuccess={fetchLeads} />}
     </div>
   );
 };
