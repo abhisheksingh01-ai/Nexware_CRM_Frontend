@@ -40,19 +40,11 @@ const LeadDashboard = () => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-
-        {/* Header */}
         <LeadHeader onAddClick={() => setIsModalOpen(true)} />
-
-        {/* Stats */}
         <div className="mt-4">
           <LeadStats leads={leads} />
         </div>
-
-        {/* Content Card */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-md overflow-hidden mt-6">
-
-          {/* Tabs & Search */}
           <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row justify-between gap-4 bg-white">
             <LeadTabs activeTab={activeTab} setActiveTab={setActiveTab} />
             <LeadSearchBar
@@ -64,7 +56,7 @@ const LeadDashboard = () => {
           </div>
 
           {/* Leads List/Grid */}
-          <div className="bg-slate-50/50 min-h-[320px] p-4 md:p-6">
+          <div className="bg-slate-50/50 min-h-80 p-4 md:p-6">
             {filteredLeads.length === 0 ? (
               <LeadEmptyState />
             ) : (
