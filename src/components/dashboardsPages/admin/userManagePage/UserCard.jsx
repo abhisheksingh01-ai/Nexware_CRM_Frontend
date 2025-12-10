@@ -15,8 +15,10 @@ import {
 
 const roleStyles = {
   admin: "bg-red-50 text-red-700 border-red-200 ring-1 ring-red-600/10",
-  subadmin: "bg-green-50 text-green-700 border-green-200 ring-1 ring-green-600/10",
-  teamhead: "bg-amber-50 text-amber-700 border-amber-200 ring-1 ring-amber-600/10",
+  subadmin:
+    "bg-green-50 text-green-700 border-green-200 ring-1 ring-green-600/10",
+  teamhead:
+    "bg-amber-50 text-amber-700 border-amber-200 ring-1 ring-amber-600/10",
   agent: "bg-blue-50 text-blue-700 border-blue-200 ring-blue-600/10",
 };
 
@@ -29,18 +31,27 @@ const statusStyles = {
 const UserCard = ({ user, onEdit, onDelete }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const roleClass = roleStyles[user.role] || "bg-gray-50 text-gray-700 border-gray-200";
+  const roleClass =
+    roleStyles[user.role] || "bg-gray-50 text-gray-700 border-gray-200";
   const statusKey = user.status ? user.status.toLowerCase() : "inactive";
   const statusClass = statusStyles[statusKey] || statusStyles.inactive;
   const StatusIcon = statusKey === "active" ? CheckCircle : XCircle;
 
   const getTeamHeadDisplay = () => {
-    if (user.teamHead?.name)
-      return <span className="font-semibold text-gray-800">{user.teamHead.name}</span>;
-
-    if (user.teamHeadId)
-      return <span className="font-mono text-xs text-gray-500">ID: {user.teamHeadId}</span>;
-
+    if (user.teamHeadId?.name) {
+      return (
+        <span className="font-semibold text-gray-800">
+          {user.teamHeadId.name}
+        </span>
+      );
+    }
+    if (typeof user.teamHeadId === "string") {
+      return (
+        <span className="font-mono text-xs text-gray-500">
+          ID: {user.teamHeadId}
+        </span>
+      );
+    }
     return <span className="text-gray-400 italic">No Team Head</span>;
   };
 
@@ -129,7 +140,11 @@ const UserCard = ({ user, onEdit, onDelete }) => {
             }`}
           >
             {isExpanded ? "Hide Details" : "See More"}
-            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {isExpanded ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
           </button>
         </div>
       </div>
@@ -147,7 +162,9 @@ const UserCard = ({ user, onEdit, onDelete }) => {
             <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
               {/* Contact */}
               <div className="space-y-1">
-                <p className="text-xs font-semibold text-gray-400 uppercase">Contact</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase">
+                  Contact
+                </p>
                 <div className="space-y-2 mt-1">
                   <p className="text-gray-900 font-medium">{user.name}</p>
                   <div className="flex items-center gap-2 text-gray-600">
@@ -163,7 +180,9 @@ const UserCard = ({ user, onEdit, onDelete }) => {
 
               {/* Role */}
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-gray-400 uppercase">Role</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase">
+                  Role
+                </p>
                 <span
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border ${roleClass}`}
                 >
@@ -174,7 +193,9 @@ const UserCard = ({ user, onEdit, onDelete }) => {
 
               {/* Reporting */}
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-gray-400 uppercase">Reporting To</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase">
+                  Reporting To
+                </p>
                 <div className="flex items-center gap-2 mt-1">
                   <div className="p-1.5 bg-white rounded-md border text-gray-400 shadow-sm">
                     <Briefcase className="w-4 h-4" />
@@ -185,13 +206,17 @@ const UserCard = ({ user, onEdit, onDelete }) => {
 
               {/* System */}
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-gray-400 uppercase">System</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase">
+                  System
+                </p>
                 <div className="space-y-1 text-gray-500 text-xs">
                   <p>
                     Current Status:{" "}
                     <span
                       className={`font-medium ${
-                        statusKey === "active" ? "text-emerald-600" : "text-red-500"
+                        statusKey === "active"
+                          ? "text-emerald-600"
+                          : "text-red-500"
                       }`}
                     >
                       {user.status}
@@ -203,14 +228,18 @@ const UserCard = ({ user, onEdit, onDelete }) => {
                       <p>
                         Last Login Date:{" "}
                         <span className="font-medium text-gray-700">
-                          {new Date(user.lastLogin.loginTime).toLocaleDateString()}
+                          {new Date(
+                            user.lastLogin.loginTime
+                          ).toLocaleDateString()}
                         </span>
                       </p>
 
                       <p>
                         Last Login Time:{" "}
                         <span className="font-medium text-gray-700">
-                          {new Date(user.lastLogin.loginTime).toLocaleTimeString()}
+                          {new Date(
+                            user.lastLogin.loginTime
+                          ).toLocaleTimeString()}
                         </span>
                       </p>
                     </>
