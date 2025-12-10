@@ -19,7 +19,18 @@ import { useAuthStore } from "../../../../store/authStore";
 import { getStatusColor, getStatusIcon } from "./leadUtils";
 
 // --- HELPER COMPONENT: INFO CARD ---
-const InfoCard = ({ icon: Icon, iconColor, label, value, subValue, isEditable, name, onChange, type = "text", options }) => (
+const InfoCard = ({ 
+  icon: Icon, 
+  iconColor, 
+  label, 
+  value, 
+  subValue, 
+  isEditable, 
+  name, 
+  onChange, 
+  type = "text", 
+  options 
+}) => (
   <div className="flex items-start p-3 bg-gray-50/50 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
     <div className={`p-2 rounded-lg ${iconColor} bg-opacity-10 shrink-0`}>
       <Icon className={`w-5 h-5 ${iconColor.replace("bg-", "text-")}`} />
@@ -35,11 +46,10 @@ const InfoCard = ({ icon: Icon, iconColor, label, value, subValue, isEditable, n
             name={name}
             value={value || ""}
             onChange={onChange}
-            className="w-full mt-1 p-2 bg-white border border-gray-300 rounded-lg text-sm font-semibold text-gray-900 focus:outline-none focus:border-blue-500"
+            className="w-full mt-1 p-2 bg-white border border-gray-300 rounded-lg text-sm font-semibold text-gray-900 focus:outline-none focus:border-blue-500 cursor-pointer"
           >
-            <option value="">Select Option</option>
+            <option value="" disabled>Select Option</option>
             {options && options.map((opt, index) => {
-              // Handle Object Options {label: "Name", value: "ID"} OR Simple Strings ["New", "Pending"]
               const optValue = typeof opt === 'object' ? opt.value : opt;
               const optLabel = typeof opt === 'object' ? opt.label : opt;
               return (
@@ -81,13 +91,19 @@ const LeadDetailsPopup = ({
   const [formData, setFormData] = useState({}); 
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-
-  // State for the Users Dropdown
   const [assignees, setAssignees] = useState([]); 
 
-  const statusOptions = ["New", "Pending", "In Progress", "Completed", "Cancelled", "Follow Up"];
+  // UPDATED: Must match Joi schema .valid() list exactly
+  const statusOptions = [
+    "Ring", 
+    "Follow Up", 
+    "Sale Done", 
+    "Not Interested", 
+    "Switch Off", 
+    "Incoming"
+  ];
 
-  // Combined Fetch Effect (Loads Lead + User List)
+  // Combined Fetch Effect
   useEffect(() => {
     const initData = async () => {
       try {
@@ -103,37 +119,30 @@ const LeadDetailsPopup = ({
         // Pre-fill form
         setFormData({
           name: data.name || "",
-          mobile: data.mobile || "", 
+          mobile: data.mobile || data.phone || "", 
           address: data.address || "",
           service: data.service || "",
           source: data.source || "",
-          status: data.status || "Pending",
-          // Handle object vs string for assignedTo
+          // Ensure default status is valid, or fallback to first option
+          status: statusOptions.includes(data.status) ? data.status : "Ring",
           assignedTo: typeof data.assignedTo === 'object' ? data.assignedTo?._id : data.assignedTo || "",
           remarks: data.remarks || ""
         });
 
-        // 2. Fetch Users for Dropdown
-        // Using the API endpoint you mentioned in your snippet
+        // 2. Fetch Users
         try {
-          // Fallback URL provided in case api.User.AdminGetAll isn't defined
-          const url = api.User?.AdminGetAll || "http://localhost:5000/api/auth/all-users"; 
-          
-          const userRes = await axios.get(url, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          // Handle different response structures (res.data vs res.data.data)
-          const rawUsers = Array.isArray(userRes.data) ? userRes.data : (userRes.data?.data || []);
-          
-          // Map to { label, value } for the InfoCard select
-          const userOptions = rawUsers.map(u => ({
-            label: u.name,
-            value: u._id
-          }));
-          
-          setAssignees(userOptions);
-
+          const url = api.User?.AdminGetAll; 
+          if (url) {
+            const userRes = await axios.get(url, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const rawUsers = Array.isArray(userRes.data) ? userRes.data : (userRes.data?.data || []);
+            const userOptions = rawUsers.map(u => ({
+              label: u.name,
+              value: u._id
+            }));
+            setAssignees(userOptions);
+          }
         } catch (userErr) {
           console.error("User fetch error:", userErr);
         }
@@ -180,20 +189,26 @@ const LeadDetailsPopup = ({
       if (!token) { alert("Token missing!"); return; }
       setActionLoading(true);
 
+      // --- CRITICAL FIX: EXACT SCHEMA MATCH ---
+      // Your Joi schema has .unknown(false), so we must ONLY send defined fields.
+      
       const payload = {
         id: leadId,              
         name: formData.name,
-        phone: formData.mobile,  
-        address: formData.address,
+        phone: formData.mobile, // Frontend uses 'mobile', Backend Joi expects 'phone'
         service: formData.service,
+        address: formData.address,
         source: formData.source,
         status: formData.status,
         remarks: formData.remarks
       };
 
-      if (formData.assignedTo) {
+      // Only add assignedTo if it is a valid string (Joi optional string)
+      if (formData.assignedTo && formData.assignedTo.trim() !== "") {
         payload.assignedTo = formData.assignedTo;
       }
+
+      console.log("Sending Strict Payload:", payload);
 
       await axios.put(api.Leads.Update, payload, {
           headers: { Authorization: `Bearer ${token}` }
@@ -204,7 +219,24 @@ const LeadDetailsPopup = ({
 
     } catch (error) {
       console.error("Update Error:", error);
-      alert("Failed to update lead: " + (error.response?.data?.message || error.message));
+      
+      // --- FIX: READ BACKEND ERROR ARRAY ---
+      // Your backend returns { success: false, errors: [...] }
+      const resData = error.response?.data;
+      let errorMsg = "Update failed";
+
+      if (resData?.errors && Array.isArray(resData.errors)) {
+        // Backend returned Joi validation array
+        errorMsg = resData.errors.join(", ");
+      } else if (resData?.message) {
+        // Backend returned generic message
+        errorMsg = resData.message;
+      } else {
+        errorMsg = error.message;
+      }
+
+      alert(`Failed: ${errorMsg}`);
+      
     } finally {
       setActionLoading(false);
     }
@@ -256,6 +288,7 @@ const LeadDetailsPopup = ({
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InfoCard icon={User} iconColor="bg-blue-100 text-blue-600" label="Full Name" isEditable={true} name="name" value={formData.name} onChange={handleChange} />
+                    {/* Maps to phone in payload */}
                     <InfoCard icon={Phone} iconColor="bg-green-100 text-green-600" label="Mobile Number" isEditable={true} name="mobile" value={formData.mobile} onChange={handleChange} />
                     <InfoCard icon={MapPin} iconColor="bg-red-100 text-red-600" label="Address" isEditable={true} name="address" value={formData.address} onChange={handleChange} />
                     <InfoCard icon={Mail} iconColor="bg-purple-100 text-purple-600" label="Email" value={leadDetails.email || "No email provided"} />
@@ -272,7 +305,6 @@ const LeadDetailsPopup = ({
                     <InfoCard icon={Briefcase} iconColor="bg-orange-100 text-orange-600" label="Service Required" isEditable={true} name="service" value={formData.service} onChange={handleChange} />
                     <InfoCard icon={Tag} iconColor="bg-indigo-100 text-indigo-600" label="Source" isEditable={true} name="source" value={formData.source} onChange={handleChange} />
                     
-                    {/* --- ASSIGNED TO DROPDOWN --- */}
                     <InfoCard
                       icon={User} 
                       iconColor="bg-teal-100 text-teal-600"
@@ -282,9 +314,10 @@ const LeadDetailsPopup = ({
                       value={formData.assignedTo} 
                       onChange={handleChange}
                       type="select" 
-                      options={assignees} // Passes list of names/IDs fetched from API
+                      options={assignees} 
                     />
 
+                    {/* Uses strict status options */}
                     <InfoCard icon={CheckCircle2} iconColor="bg-blue-100 text-blue-600" label="Status" isEditable={true} type="select" options={statusOptions} name="status" value={formData.status} onChange={handleChange} />
                     
                     <InfoCard icon={Clock} iconColor="bg-gray-100 text-gray-600" label="Created At" value={new Date(leadDetails.createdAt).toLocaleDateString()} subValue={new Date(leadDetails.createdAt).toLocaleTimeString()} />
@@ -357,7 +390,7 @@ const LeadTable = () => {
       const mappedLeads = data.map((lead, index) => ({
         id: lead.id || lead._id || `lead-${index}`,
         name: lead.name || "Unknown",
-        mobile: lead.mobile || lead.phone || "N/A",
+        mobile: lead.phone || lead.mobile || "N/A",
         status: lead.status || "Pending",
         date: lead.date || lead.createdAt ? new Date(lead.date || lead.createdAt).toISOString().split("T")[0] : "N/A",
       }));
