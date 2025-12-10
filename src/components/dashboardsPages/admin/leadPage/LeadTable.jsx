@@ -219,12 +219,8 @@ const LeadDetailsPopup = ({
 
     } catch (error) {
       console.error("Update Error:", error);
-      
-      // --- FIX: READ BACKEND ERROR ARRAY ---
-      // Your backend returns { success: false, errors: [...] }
       const resData = error.response?.data;
       let errorMsg = "Update failed";
-
       if (resData?.errors && Array.isArray(resData.errors)) {
         // Backend returned Joi validation array
         errorMsg = resData.errors.join(", ");
@@ -234,17 +230,13 @@ const LeadDetailsPopup = ({
       } else {
         errorMsg = error.message;
       }
-
       alert(`Failed: ${errorMsg}`);
       
     } finally {
       setActionLoading(false);
     }
   };
-
-
   if (!leadId) return null;
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
@@ -368,8 +360,6 @@ const LeadDetailsPopup = ({
     </div>
   );
 };
-
-// --- MAIN COMPONENT: LEAD TABLE ---
 const LeadTable = () => {
   const { user: authUser } = useAuthStore();
   const [leads, setLeads] = useState([]);
@@ -377,7 +367,6 @@ const LeadTable = () => {
   const [showAll, setShowAll] = useState(false);
   const [selectedLeadId, setSelectedLeadId] = useState(null);
   const isAdmin = authUser?.role === "admin";
-
   const fetchLeads = async () => {
     try {
       setLoading(true);
@@ -459,5 +448,4 @@ const LeadTable = () => {
     </div>
   );
 };
-
 export default LeadTable;
