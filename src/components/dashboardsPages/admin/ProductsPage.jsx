@@ -2,8 +2,6 @@ import { useState } from 'react';
 import ProductHeader from './productPage/ProductHeader'; 
 import AddProductModal from './productPage/AddProductModal';
 import ProductStats from './productPage/ProductStats';
-import ProductTable from './productPage/ProductTable';
-import ProductDetailsModal from './productPage/ProductDetailsModal';
 
 export default function ProductsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,8 +16,6 @@ export default function ProductsPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         <ProductHeader onAddClick={handleOpenModal} />
         <ProductStats/>
-        <ProductTable />
-        <ProductDetailsModal />
         <AddProductModal 
           isOpen={isModalOpen} 
           onClose={handleCloseModal}
