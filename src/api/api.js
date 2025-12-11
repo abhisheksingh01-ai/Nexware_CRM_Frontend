@@ -18,10 +18,17 @@ const api = {
   },
   Leads: {
     Create: BaseUrl + "leads/",
-    GetAll: BaseUrl + "leads/leads-list", 
-    GetDetails: (leadId) => `${BaseUrl}leads/lead-details?leadId=${leadId}`, 
-    Update: BaseUrl + "leads/updateLead", 
-    AdminDelete: BaseUrl + "leads/deleteLead", 
+    GetAll: BaseUrl + "leads/leads-list",
+    GetDetails: (leadId) => `${BaseUrl}leads/lead-details?leadId=${leadId}`,
+    Update: BaseUrl + "leads/updateLead",
+    AdminDelete: BaseUrl + "leads/deleteLead",
+  },
+  Product: {
+    AdminCreate: BaseUrl + "product/adminCreate",
+    GetAll: BaseUrl + "product/getAll",
+    GetOne: BaseUrl + "product/getOne",
+    AdminUpdate: BaseUrl + "product/adminUpdate",
+    AdminDelete: BaseUrl + "product/adminDelete",
   }
 };
 
