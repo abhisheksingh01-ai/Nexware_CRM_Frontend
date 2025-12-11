@@ -8,24 +8,12 @@ import {
   CreditCard,
   CheckCircle,
   AlertCircle,
-  Edit,
-  Trash2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const ProductDetailsModal = ({ product, onClose, userRole }) => {
+const ProductDetailsModal = ({ product, onClose }) => {
   
   if (!product) return null;
-
-  // --- Permission Helpers (Passed via props or store) ---
-  const canEdit = userRole === 'admin' || userRole === 'subadmin';
-  const canDelete = userRole === 'admin';
-
-  // --- Handlers (Mock) ---
-  const onEdit = () => alert("Redirect to Edit Page");
-  const onDelete = () => {
-    if(confirm("Delete this product?")) onClose();
-  };
 
   // Animation variants
   const backdropVariants = {
@@ -135,7 +123,7 @@ const ProductDetailsModal = ({ product, onClose, userRole }) => {
                       </p>
                       <div className="flex items-baseline gap-2">
                         <span className="text-2xl font-bold text-slate-900">${product.offerPrice || product.price}</span>
-                        {product.offerPrice && (
+                        {product.offerPrice && product.offerPrice < product.price && (
                           <span className="text-sm text-slate-400 line-through">${product.price}</span>
                         )}
                       </div>
@@ -156,7 +144,7 @@ const ProductDetailsModal = ({ product, onClose, userRole }) => {
                   {/* Description */}
                   <div>
                     <h3 className="text-sm font-bold text-slate-900 mb-2">Description</h3>
-                    <p className="text-slate-600 text-sm leading-relaxed">
+                    <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line">
                       {product.description}
                     </p>
                   </div>
@@ -167,7 +155,7 @@ const ProductDetailsModal = ({ product, onClose, userRole }) => {
                       <span className="text-xs text-slate-400 block mb-1">Created At</span>
                       <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
                         <Calendar className="w-4 h-4 text-slate-400" />
-                        {new Date(product.createdAt).toLocaleDateString()}
+                        {product.createdAt ? new Date(product.createdAt).toLocaleDateString() : 'N/A'}
                       </div>
                     </div>
                     <div>
@@ -182,43 +170,13 @@ const ProductDetailsModal = ({ product, onClose, userRole }) => {
                 </div>
               </div>
             </div>
-
-            {/* Footer Buttons (Role Based) */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between gap-3">
-              
-              {/* Left Side: Delete (Admin Only) */}
-              <div>
-                {canDelete && (
-                  <button 
-                    onClick={onDelete}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-white border border-red-200 text-red-600 font-medium rounded-xl hover:bg-red-50 transition-all shadow-sm"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span>Delete</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Right Side: Close & Edit */}
-              <div className="flex gap-3">
-                <button 
-                  onClick={onClose}
-                  className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-all shadow-sm"
-                >
-                  Close
-                </button>
-                
-                {/* Edit Button (Admin & Subadmin) */}
-                {canEdit && (
-                  <button 
-                    onClick={onEdit}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white font-medium rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20"
-                  >
-                    <Edit className="w-4 h-4" />
-                    <span>Edit Product</span>
-                  </button>
-                )}
-              </div>
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+              <button 
+                onClick={onClose}
+                className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-all shadow-sm"
+              >
+                Close
+              </button>
             </div>
 
           </motion.div>

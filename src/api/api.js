@@ -24,11 +24,11 @@ const api = {
     AdminDelete: BaseUrl + "leads/deleteLead",
   },
   Product: {
-    AdminCreate: BaseUrl + "product/adminCreate",
-    GetAll: BaseUrl + "product/getAll",
-    GetOne: BaseUrl + "product/getOne",
-    AdminUpdate: BaseUrl + "product/adminUpdate",
-    AdminDelete: BaseUrl + "product/adminDelete",
+    AdminCreate: BaseUrl + "products/adminCreate",
+    GetAll: BaseUrl + "products/getAll",
+    GetOne: BaseUrl + "products/getOne",
+    AdminUpdate: BaseUrl + "products/adminUpdate",
+    AdminDelete: BaseUrl + "products/adminDelete",
   }
 };
 

@@ -21,7 +21,6 @@ export default function ProductsPage() {
           onClose={handleCloseModal}
           onSubmit={handleProductCreated}
         />
-        
       </div>
     </div>
   );
