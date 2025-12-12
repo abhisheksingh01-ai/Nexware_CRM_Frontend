@@ -29,7 +29,15 @@ const api = {
     GetOne: BaseUrl + "products/getOne",
     AdminUpdate: BaseUrl + "products/adminUpdate",
     AdminDelete: BaseUrl + "products/adminDelete",
-  }
+  },
+  Order: {
+  Create: BaseUrl + "orders/create",
+  GetAll: BaseUrl + "orders/getAll",
+  GetOne: BaseUrl + "orders/getOne",          
+  Update: BaseUrl + "orders/updateOrder",    
+  Delete: BaseUrl + "orders/deleteOrder",     
+}
+
 };
 
 export default api;
