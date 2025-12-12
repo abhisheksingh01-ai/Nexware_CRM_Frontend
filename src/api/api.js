@@ -31,9 +31,9 @@ const api = {
     AdminDelete: BaseUrl + "products/adminDelete",
   },
   Order: {
-  Create: BaseUrl + "orders/create",
-  GetAll: BaseUrl + "orders/getAll",
-  GetOne: BaseUrl + "orders/getOne",          
+  Create: BaseUrl + "orders/",
+  GetAll: BaseUrl + "orders/orders-list",
+  GetOne: BaseUrl + "orders/order-details",          
   Update: BaseUrl + "orders/updateOrder",    
   Delete: BaseUrl + "orders/deleteOrder",     
 }

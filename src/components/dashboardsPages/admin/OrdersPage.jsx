@@ -1,116 +1,109 @@
-import React, { useState } from "react";
-import { dummyOrders } from "./orderPage/dummyOrders";
+import React, { useEffect, useState } from "react";
 import OrderCard from "./orderPage/OrderCard";
 import OrderTable from "./orderPage/OrderTable";
 import OrderDetailsModal from "./orderPage/OrderDetailsModal";
 import OrderHeader from "./orderPage/OrderHeader";
 import OrderStats from "./orderPage/OrderStats";
+import api from "../../../api/api";
+import axios from "axios";
+import { useAuthStore } from "../../../store/authStore";
 
 const OrdersPage = () => {
-  const [orders] = useState(dummyOrders);
+  const [orders, setOrders] = useState([]);
   const [view, setView] = useState("table");
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { user: authUser } = useAuthStore();
 
-  // Styles
-  const styles = {
-    container: {
-      padding: "40px",
-      minHeight: "100vh",
-      backgroundColor: "#f8fafc",
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-    },
-    header: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: "32px"
-    },
-    title: {
-      fontSize: "28px",
-      fontWeight: "700",
-      color: "#0f172a",
-      margin: 0
-    },
-    subtitle: {
-      color: "#64748b",
-      margin: "4px 0 0 0",
-      fontSize: "14px"
-    },
-    toggleContainer: {
-      display: "flex",
-      background: "white",
-      padding: "4px",
-      borderRadius: "8px",
-      border: "1px solid #e2e8f0",
-      boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
-    },
-    toggleBtn: (isActive) => ({
-      padding: "8px 16px",
-      border: "none",
-      background: isActive ? "#eff6ff" : "transparent",
-      color: isActive ? "#3b82f6" : "#64748b",
-      fontWeight: "600",
-      borderRadius: "6px",
-      cursor: "pointer",
-      transition: "all 0.2s ease"
-    }),
-    gridContainer: {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-      gap: "24px"
+  // -----------------------------
+  // Fetch Orders (Axios)
+  // -----------------------------
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const token = authUser?.token;
+      const bodyData = {
+        page: 1,
+        limit: 20,
+      };
+      const response = await axios.post(api.Order.GetAll, bodyData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setOrders(response.data.data || []);
+    } catch (error) {
+      console.error("API Error:", error.response?.data || error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
   return (
     <>
-      {/* Header */}
       <OrderHeader />
-      <OrderStats/>
+      <OrderStats />
 
-      <div style={styles.container}>
-        <div style={styles.header}>
+      {/* MAIN CONTAINER */}
+      <div className="p-10 min-h-screen bg-slate-50">
+
+        {/* Header */}
+        <div className="flex justify-between items-center mb-10">
           <div>
-            <h1 style={styles.title}>Orders</h1>
-            <p style={styles.subtitle}>Manage and track your customer orders</p>
+            <h1 className="text-3xl font-bold text-slate-900">Orders</h1>
+            <p className="text-slate-500 text-sm">Manage and track your customer orders</p>
           </div>
 
-          {/* View Toggle */}
-          <div style={styles.toggleContainer}>
-            <button 
-              onClick={() => setView("table")} 
-              style={styles.toggleBtn(view === "table")}
+          {/* Toggle Buttons */}
+          <div className="flex bg-white p-1 border border-slate-200 rounded-lg shadow-sm">
+            <button
+              onClick={() => setView("table")}
+              className={`px-4 py-2 rounded-md font-semibold transition 
+                ${view === "table" ? "bg-blue-100 text-blue-600" : "text-slate-500"}`}
             >
               Table List
             </button>
-            <button 
-              onClick={() => setView("cards")} 
-              style={styles.toggleBtn(view === "cards")}
+
+            <button
+              onClick={() => setView("cards")}
+              className={`px-4 py-2 rounded-md font-semibold transition 
+                ${view === "cards" ? "bg-blue-100 text-blue-600" : "text-slate-500"}`}
             >
               Grid Cards
             </button>
           </div>
         </div>
 
-        {/* Content */}
-        {view === "table" ? (
+        {/* Loading */}
+        {loading && <p className="text-slate-600">Loading orders...</p>}
+
+        {/* TABLE VIEW */}
+        {!loading && view === "table" && (
           <OrderTable orders={orders} onRowClick={setSelectedOrder} />
-        ) : (
-          <div style={styles.gridContainer}>
+        )}
+
+        {/* CARD VIEW */}
+        {!loading && view === "cards" && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {orders.map((o) => (
-              <OrderCard 
-                key={o.orderId} 
-                order={o} 
-                onClick={() => setSelectedOrder(o)} 
+              <OrderCard
+                key={o._id}
+                order={o}
+                onClick={() => setSelectedOrder(o)}
               />
             ))}
           </div>
         )}
 
-        {/* Popup */}
+        {/* DETAILS MODAL */}
         {selectedOrder && (
-          <OrderDetailsModal 
-            order={selectedOrder} 
-            onClose={() => setSelectedOrder(null)} 
+          <OrderDetailsModal
+            order={selectedOrder}
+            onClose={() => setSelectedOrder(null)}
           />
         )}
       </div>
