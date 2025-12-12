@@ -22,15 +22,12 @@ const OrdersPage = () => {
     try {
       setLoading(true);
       const token = authUser?.token;
-      const bodyData = {
-        page: 1,
-        limit: 20,
-      };
-      const response = await axios.post(api.Order.GetAll, bodyData, {
+      const response = await axios.get(api.Order.GetAll,{
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+      console.log("Fetched Orders:", response.data);
       setOrders(response.data.data || []);
     } catch (error) {
       console.error("API Error:", error.response?.data || error);
