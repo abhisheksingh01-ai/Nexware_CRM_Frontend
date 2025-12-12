@@ -24,6 +24,12 @@ const UsersPage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editUser, setEditUser] = useState(null);
 
+  // --- 1. NEW FUNCTION: Update list instantly when user is created ---
+  const handleUserAdded = (newUser) => {
+    // Add the new user to the beginning of the existing list
+    setUsers((prevUsers) => [newUser, ...prevUsers]);
+  };
+
   const handleDeleteUser = async (userId) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this user?"
@@ -41,11 +47,11 @@ const UsersPage = () => {
       });
 
       const data = await res.json();
-      console.log(data)
 
       if (res.ok) {
         alert(data.message);
-        // update state if needed
+        // --- BONUS FIX: Remove deleted user from list instantly ---
+        setUsers((prevUsers) => prevUsers.filter((u) => u._id !== userId));
       } else {
         alert(data.message || "Failed to delete user");
       }
@@ -197,8 +203,13 @@ const UsersPage = () => {
         )}
       </div>
 
-      {/* Modals */}
-      {showAddModal && <AddUserModal onClose={() => setShowAddModal(false)} />}
+      {/* --- 2. UPDATED MODAL: Passed the onUserAdded prop --- */}
+      {showAddModal && (
+        <AddUserModal
+          onClose={() => setShowAddModal(false)}
+          onUserAdded={handleUserAdded}
+        />
+      )}
 
       {editUser && (
         <UserEditModal user={editUser} onClose={() => setEditUser(null)} />
