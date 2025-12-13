@@ -104,7 +104,7 @@ const ProductTable = ({ products, isLoading, onRefresh }) => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-medium">${product.price}</td>
+                    <td className="px-6 py-4 font-medium">₹{product.price}</td>
                     <td className="px-6 py-4 text-slate-600">{product.stock} units</td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${getStatusColor(product.status)}`}>
