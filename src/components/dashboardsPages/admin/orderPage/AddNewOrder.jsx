@@ -12,7 +12,7 @@ const AddNewOrder = ({ onClose, onSuccess }) => {
   const [products, setProducts] = useState([]);
   const [agents, setAgents] = useState([]);
 
-  // CONSTANTS FOR DROPDOWNS
+  // CONSTANTS
   const ORDER_STATUSES = [
     "Pending", "Confirmed", "Packed", "Shipped", "In Transit", 
     "Out For Delivery", "Delivered", "RTO Initiated", "RTO Received", 
@@ -20,6 +20,7 @@ const AddNewOrder = ({ onClose, onSuccess }) => {
   ];
 
   const PAYMENT_STATUSES = ["Pending", "Paid", "Failed", "Refunded"];
+  const PAYMENT_MODES = ["COD", "Partial Payment", "Full Payment"];
 
   // Form State
   const [formData, setFormData] = useState({
@@ -32,7 +33,9 @@ const AddNewOrder = ({ onClose, onSuccess }) => {
     priceAtOrderTime: "",
     agentId: "",
     awb: "", 
-    paymentMode: "COD",
+    paymentMode: "Partial Payment", 
+    depositedAmount: 0,
+    remainingAmount: 0,
     orderStatus: "Pending",  
     paymentStatus: "Pending", 
     remarks: ""
@@ -71,10 +74,25 @@ const AddNewOrder = ({ onClose, onSuccess }) => {
     }));
   };
 
-  // 3. General Input Change
+  // 3. General Input Change (With Auto-Calculation logic)
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    setFormData((prev) => {
+      const updatedData = { ...prev, [name]: value };
+
+      // Recalculate Remaining Amount if relevant fields change
+      if (name === "depositedAmount" || name === "priceAtOrderTime" || name === "quantity") {
+        const price = Number(updatedData.priceAtOrderTime) || 0;
+        const qty = Number(updatedData.quantity) || 1;
+        const currentTotal = price * qty;
+        
+        const deposit = Number(updatedData.depositedAmount) || 0;
+        updatedData.remainingAmount = Math.max(0, currentTotal - deposit);
+      }
+
+      return updatedData;
+    });
   };
 
   // 4. Validation
@@ -91,9 +109,16 @@ const AddNewOrder = ({ onClose, onSuccess }) => {
     if (formData.quantity < 1) return "Quantity must be at least 1.";
     if (!formData.priceAtOrderTime || Number(formData.priceAtOrderTime) < 0) return "Price cannot be negative.";
     
+    // CONDITION: Only validate deposit if Payment Mode is Partial
+    if (formData.paymentMode === "Partial Payment") {
+        if (Number(formData.depositedAmount) < 0) return "Deposited amount cannot be negative.";
+        if (Number(formData.depositedAmount) > displayedTotal) return "Deposited amount cannot be greater than Total Amount.";
+    }
+
     return null;
   };
 
+  // 🔥 5. Handle Submit (FIXED FOR 400 ERROR)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -107,7 +132,18 @@ const AddNewOrder = ({ onClose, onSuccess }) => {
       setLoading(true);
       const token = authUser?.token;
       
-      await axios.post(api.Order.Create, formData, {
+      // 🔥 FIX: Explicitly convert Strings to Numbers
+      // Backend Joi Validation requires valid numbers, HTML inputs return strings.
+      const payload = {
+        ...formData,
+        quantity: Number(formData.quantity),
+        priceAtOrderTime: Number(formData.priceAtOrderTime),
+        // If mode is Partial, convert input to number. If not, force 0.
+        depositedAmount: formData.paymentMode === "Partial Payment" ? Number(formData.depositedAmount) : 0,
+        remainingAmount: formData.paymentMode === "Partial Payment" ? Number(formData.remainingAmount) : 0,
+      };
+
+      await axios.post(api.Order.Create, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -192,6 +228,17 @@ const AddNewOrder = ({ onClose, onSuccess }) => {
       padding: "12px 24px", borderRadius: "10px", 
       border: "1px solid #e2e8f0", background: "white", 
       color: "#475569", fontWeight: "600", fontSize: "14px", cursor: "pointer"
+    },
+    partialBox: {
+        gridColumn: "1 / -1", 
+        display: "grid", 
+        gridTemplateColumns: "1fr 1fr", 
+        gap: "20px",
+        backgroundColor: "#f0f9ff", 
+        padding: "20px", 
+        borderRadius: "12px", 
+        marginBottom: "20px",
+        border: "1px dashed #bae6fd"
     }
   };
 
@@ -305,12 +352,19 @@ const AddNewOrder = ({ onClose, onSuccess }) => {
             </div>
 
             {/* 3. Payment Details */}
+            <div style={styles.sectionTitle}>Payment Details</div>
             <div style={styles.gridTwo}>
                <div style={styles.inputGroup}>
-                <label style={styles.label}>Payment Mode</label>
-                <select style={{ ...styles.input, cursor: "pointer" }} name="paymentMode" value={formData.paymentMode} onChange={handleChange}>
-                  <option value="COD">COD</option>
-                  <option value="Online">Online</option>
+                <label style={styles.label}>Payment Mode *</label>
+                <select 
+                  style={{ ...styles.input, cursor: "pointer" }} 
+                  name="paymentMode" 
+                  value={formData.paymentMode} 
+                  onChange={handleChange}
+                >
+                  {PAYMENT_MODES.map(mode => (
+                    <option key={mode} value={mode}>{mode}</option>
+                  ))}
                 </select>
               </div>
               <div style={styles.inputGroup}>
@@ -328,7 +382,39 @@ const AddNewOrder = ({ onClose, onSuccess }) => {
               </div>
             </div>
 
+            {/* CONDITIONAL RENDERING: ONLY SHOW IF PARTIAL PAYMENT */}
+            {formData.paymentMode === "Partial Payment" && (
+              <div style={styles.partialBox}>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Deposited Amount *</label>
+                  <div style={{ position: "relative" }}>
+                    <span style={{ position: "absolute", left: "12px", top: "12px", color: "#0ea5e9" }}>₹</span>
+                    <input 
+                      style={{ ...styles.input, paddingLeft: "30px", borderColor: "#bae6fd", background: "#fff" }} 
+                      type="number" 
+                      name="depositedAmount" 
+                      value={formData.depositedAmount} 
+                      onChange={handleChange} 
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Remaining Amount</label>
+                  <div style={{ position: "relative" }}>
+                    <span style={{ position: "absolute", left: "12px", top: "12px", color: "#ef4444" }}>₹</span>
+                    <input 
+                      readOnly
+                      style={{ ...styles.readOnlyInput, paddingLeft: "30px", color: "#ef4444", background: "#fee2e2" }} 
+                      value={formData.remainingAmount} 
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* 4. Logistics Section */}
+            <div style={styles.sectionTitle}>Logistics</div>
             <div style={styles.gridTwo}>
                 <div style={styles.inputGroup}>
                     <label style={styles.label}>Select Agent *</label>

@@ -38,20 +38,16 @@ const OrdersPage = () => {
   useEffect(() => {
     fetchOrders();
   }, []);
-
-  // 2. Handler: Receive full order details from Table
   const handleDetailsFetched = (orderData) => {
     setSelectedOrder(orderData);
   };
-
-  // 3. Handler: Fallback for Card View (Fetch manually if needed)
   const handleCardClick = async (orderId) => {
     try {
         setLoading(true);
         const response = await axios.get(`${api.Order.GetOne}?orderId=${orderId}`, {
             headers: { Authorization: `Bearer ${authUser?.token}` },
         });
-        setSelectedOrder(response.data.data);
+        console.log("Fetched Order Details:", response.data.data);
     } catch (error) {
         console.error("Error fetching card details", error);
     } finally {
