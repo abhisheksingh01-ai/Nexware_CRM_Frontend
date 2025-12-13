@@ -4,101 +4,110 @@ const OrderDetailsModal = ({ order, onClose }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editableOrder, setEditableOrder] = useState(null);
 
-  // Sync props to state
   useEffect(() => {
-    if (order) {
-      setEditableOrder(order);
-    }
+    if (order) setEditableOrder(order);
   }, [order]);
 
   if (!editableOrder) return null;
 
-  // Handle Input Changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setEditableOrder((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle Save (Mock)
   const handleSave = () => {
     console.log("Saving Updated Order:", editableOrder);
-    // Add your API update logic here (e.g., axios.put...)
+    alert("Order updated successfully! (Mock Action)");
     setIsEditing(false);
-    alert("Order updated successfully!");
   };
 
-  // Handle Invoice Download (Print View)
+  // --- Invoice Generator ---
   const handleDownloadInvoice = () => {
-    const printWindow = window.open("", "", "height=600,width=800");
+    const printWindow = window.open("", "", "height=800,width=800");
     printWindow.document.write(`
       <html>
         <head>
-          <title>Invoice - #${editableOrder._id.slice(-6)}</title>
+          <title>Invoice #${editableOrder._id.slice(-6)}</title>
           <style>
-            body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #333; }
-            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; }
-            .title { font-size: 24px; font-weight: bold; color: #2563eb; }
-            .section { margin-bottom: 20px; }
-            .label { font-weight: bold; color: #666; font-size: 12px; text-transform: uppercase; }
-            .value { font-size: 14px; margin-top: 4px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-            th { background-color: #f8fafc; }
-            .total-row { font-weight: bold; background-color: #f1f5f9; }
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #1e293b; max-width: 800px; margin: auto; }
+            .header-row { display: flex; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
+            .brand { font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; }
+            .invoice-tag { background: #eff6ff; color: #2563eb; padding: 6px 12px; border-radius: 4px; font-weight: 600; font-size: 12px; text-transform: uppercase; }
+            .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; font-weight: 700; margin-bottom: 8px; }
+            .info-block { margin-bottom: 24px; }
+            .info-text { font-size: 14px; line-height: 1.6; color: #334155; }
+            table { width: 100%; border-collapse: collapse; margin: 30px 0; }
+            th { text-align: left; padding: 12px 0; border-bottom: 2px solid #e2e8f0; font-size: 12px; text-transform: uppercase; color: #64748b; }
+            td { padding: 16px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #0f172a; }
+            .total-section { display: flex; justify-content: flex-end; margin-top: 20px; }
+            .total-box { width: 300px; background: #f8fafc; padding: 20px; border-radius: 8px; }
+            .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+            .grand-total { font-weight: 800; font-size: 18px; color: #0f172a; border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 12px; }
           </style>
         </head>
         <body>
-          <div class="header">
+          <div class="header-row">
             <div>
-              <div class="title">INVOICE</div>
-              <div class="value">Order #${editableOrder._id}</div>
-              <div class="value">Date: ${new Date(editableOrder.createdAt).toLocaleDateString()}</div>
+              <div class="brand">INVOICE</div>
+              <div style="font-size:13px; color:#64748b; margin-top:4px;">Date: ${new Date().toLocaleDateString()}</div>
             </div>
-            <div style="text-align: right;">
-              <div class="label">Billed To</div>
-              <div class="value">${editableOrder.customerName}</div>
-              <div class="value">${editableOrder.phone}</div>
-              <div class="value">${editableOrder.address}, ${editableOrder.pincode}</div>
+            <div>
+              <span class="invoice-tag">#${editableOrder._id.slice(-6).toUpperCase()}</span>
             </div>
           </div>
 
-          <h3>Order Summary</h3>
+          <div style="display: flex; justify-content: space-between;">
+             <div class="info-block">
+                <div class="section-title">Billed To</div>
+                <div class="info-text">
+                   <strong>${editableOrder.customerName}</strong><br>
+                   ${editableOrder.address}<br>
+                   Pincode: ${editableOrder.pincode}<br>
+                   Phone: ${editableOrder.phone}
+                </div>
+             </div>
+             <div class="info-block" style="text-align: right;">
+                <div class="section-title">Logistics</div>
+                <div class="info-text">
+                   Status: ${editableOrder.orderStatus}<br>
+                   AWB: ${editableOrder.awb || 'N/A'}<br>
+                   Agent: ${editableOrder.agentId?.name || 'Assigned Agent'}
+                </div>
+             </div>
+          </div>
+
           <table>
             <thead>
-              <tr><th>Item/Product ID</th><th>Qty</th><th>Price</th><th>Total</th></tr>
+              <tr><th style="width:50%">Item</th><th>Qty</th><th>Unit Price</th><th style="text-align:right">Total</th></tr>
             </thead>
             <tbody>
               <tr>
-                <td>Product ID: ${editableOrder.productId?._id || "N/A"}</td>
+                <td>
+                  <strong>${editableOrder.productId?.name || "Product ID: " + editableOrder.productId?._id}</strong><br>
+                  <span style="font-size:12px; color:#64748b">Item SKU / ID Ref</span>
+                </td>
                 <td>${editableOrder.quantity}</td>
                 <td>₹${editableOrder.priceAtOrderTime}</td>
-                <td>₹${editableOrder.totalAmount}</td>
+                <td style="text-align:right">₹${editableOrder.totalAmount}</td>
               </tr>
             </tbody>
           </table>
 
-          <div style="margin-top: 30px; display: flex; justify-content: flex-end;">
-            <div style="width: 250px;">
-               <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                 <span>Subtotal:</span> <span>₹${editableOrder.totalAmount}</span>
-               </div>
+          <div class="total-section">
+            <div class="total-box">
+               <div class="row"><span>Subtotal</span> <span>₹${editableOrder.totalAmount}</span></div>
+               <div class="row"><span>Payment Mode</span> <span>${editableOrder.paymentMode}</span></div>
                ${editableOrder.paymentMode === "Partial Payment" ? `
-               <div style="display:flex; justify-content:space-between; margin-bottom:8px; color: green;">
-                 <span>Deposited:</span> <span>- ₹${editableOrder.depositedAmount}</span>
-               </div>
-               <div style="display:flex; justify-content:space-between; font-weight:bold; border-top:1px solid #ddd; padding-top:8px;">
-                 <span>Remaining Due:</span> <span>₹${editableOrder.remainingAmount}</span>
-               </div>
+               <div class="row" style="color:#16a34a"><span>Paid (Deposit)</span> <span>- ₹${editableOrder.depositedAmount}</span></div>
+               <div class="row grand-total" style="color:#dc2626"><span>Due Amount</span> <span>₹${editableOrder.remainingAmount}</span></div>
                ` : `
-               <div style="display:flex; justify-content:space-between; font-weight:bold; border-top:1px solid #ddd; padding-top:8px;">
-                 <span>Total Paid:</span> <span>₹${editableOrder.totalAmount}</span>
-               </div>
+               <div class="row grand-total"><span>Total Paid</span> <span>₹${editableOrder.totalAmount}</span></div>
                `}
             </div>
           </div>
           
-          <div style="margin-top: 40px; font-size: 12px; color: #888; text-align: center;">
-            Thank you for your business!
+          <div style="margin-top: 60px; text-align: center; font-size: 12px; color: #94a3b8;">
+             Computer generated invoice. No signature required.
           </div>
         </body>
       </html>
@@ -111,82 +120,100 @@ const OrderDetailsModal = ({ order, onClose }) => {
   const styles = {
     overlay: {
       position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: "rgba(15, 23, 42, 0.6)", backdropFilter: "blur(6px)",
-      zIndex: 1100, display: "flex", justifyContent: "center", alignItems: "center",
+      backgroundColor: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(8px)",
+      zIndex: 1200, display: "flex", justifyContent: "center", alignItems: "center",
       animation: "fadeIn 0.2s ease-out"
     },
     modal: {
-      background: "#ffffff", borderRadius: "20px", width: "95%", maxWidth: "800px",
-      maxHeight: "90vh", display: "flex", flexDirection: "column",
+      background: "#fff", borderRadius: "24px", width: "95%", maxWidth: "900px",
+      maxHeight: "92vh", display: "flex", flexDirection: "column",
       boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)", overflow: "hidden",
-      fontFamily: '"Inter", sans-serif'
+      fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif'
     },
+    // Header
     header: {
       padding: "24px 32px", borderBottom: "1px solid #f1f5f9",
       display: "flex", justifyContent: "space-between", alignItems: "center",
+      background: "#ffffff"
+    },
+    headerLeft: { display: "flex", flexDirection: "column", gap: "4px" },
+    orderId: { fontSize: "13px", color: "#64748b", fontWeight: "600", letterSpacing: "0.5px" },
+    title: { fontSize: "24px", fontWeight: "800", color: "#0f172a", margin: 0, letterSpacing: "-0.5px" },
+    
+    // Body Layout
+    body: { 
+      padding: "32px", overflowY: "auto", background: "#f8fafc",
+      display: "grid", gridTemplateColumns: "1.2fr 1.8fr", gap: "24px" // Dashboard grid
+    },
+    
+    // Cards
+    card: {
+      background: "#ffffff", borderRadius: "16px", padding: "24px",
+      border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.02)",
+      display: "flex", flexDirection: "column", gap: "20px"
+    },
+    cardHeader: {
+      fontSize: "14px", fontWeight: "700", color: "#0f172a", 
+      display: "flex", alignItems: "center", gap: "8px", paddingBottom: "16px",
+      borderBottom: "1px dashed #e2e8f0", marginBottom: "4px"
+    },
+
+    // Fields
+    fieldRow: { display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "14px" },
+    label: { color: "#64748b", fontWeight: "500" },
+    value: { color: "#1e293b", fontWeight: "600", textAlign: "right" },
+    input: {
+      padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1",
+      fontSize: "13px", outline: "none", width: "100%", transition: "all 0.2s",
       background: "#f8fafc"
     },
-    headerTitle: { fontSize: "20px", fontWeight: "700", color: "#0f172a", margin: 0 },
-    btnIcon: {
-      background: "transparent", border: "1px solid #e2e8f0", borderRadius: "8px",
-      padding: "8px 12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px",
-      fontSize: "13px", fontWeight: "600", color: "#475569", transition: "0.2s"
-    },
-    closeBtn: {
-      border: "none", background: "transparent", fontSize: "24px", cursor: "pointer", color: "#94a3b8"
-    },
-    body: { padding: "32px", overflowY: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px" },
-    section: { gridColumn: "span 1" },
-    fullWidth: { gridColumn: "span 2" },
-    sectionTitle: {
-      fontSize: "12px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase",
-      marginBottom: "16px", letterSpacing: "1px", borderBottom: "1px solid #e2e8f0", paddingBottom: "8px"
-    },
-    fieldGroup: { marginBottom: "16px" },
-    label: { display: "block", fontSize: "12px", color: "#64748b", fontWeight: "600", marginBottom: "4px" },
-    value: { fontSize: "14px", color: "#1e293b", fontWeight: "500" },
-    input: {
-      width: "100%", padding: "10px", border: "1px solid #cbd5e1", borderRadius: "8px",
-      fontSize: "14px", color: "#0f172a", outline: "none", transition: "border 0.2s"
-    },
-    badge: (type, status) => {
-      const colors = {
-        Paid: "#dcfce7", Pending: "#ffedd5", Failed: "#fee2e2",
-        Delivered: "#dcfce7", Cancelled: "#fee2e2", Shipped: "#e0f2fe", Partial: "#fff7ed"
+    
+    // Status Badge
+    badge: (status) => {
+      const config = {
+        Paid: { bg: "#dcfce7", text: "#166534" },
+        Pending: { bg: "#ffedd5", text: "#9a3412" },
+        Failed: { bg: "#fee2e2", text: "#991b1b" },
+        "Partial Payment": { bg: "#e0f2fe", text: "#075985" },
+        Delivered: { bg: "#d1fae5", text: "#065f46" },
+        Cancelled: { bg: "#fef2f2", text: "#ef4444" },
+        Default: { bg: "#f1f5f9", text: "#475569" }
       };
-      const textColors = {
-        Paid: "#166534", Pending: "#9a3412", Failed: "#991b1b",
-        Delivered: "#15803d", Cancelled: "#991b1b", Shipped: "#075985", Partial: "#c2410c"
-      };
-      const key = status?.includes("Partial") ? "Partial" : status;
+      const style = config[status] || config.Default;
       return {
-        backgroundColor: colors[key] || "#f1f5f9",
-        color: textColors[key] || "#475569",
-        padding: "4px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "700", display: "inline-block"
+        background: style.bg, color: style.text, padding: "4px 10px", 
+        borderRadius: "20px", fontSize: "11px", fontWeight: "700", textTransform: "uppercase"
       };
     },
+
+    // Footer
     footer: {
-      padding: "20px 32px", borderTop: "1px solid #f1f5f9", background: "#ffffff",
+      padding: "20px 32px", background: "#ffffff", borderTop: "1px solid #f1f5f9",
       display: "flex", justifyContent: "flex-end", gap: "12px"
     },
-    btnSecondary: {
-      padding: "10px 20px", border: "1px solid #cbd5e1", background: "white",
-      color: "#475569", borderRadius: "8px", cursor: "pointer", fontWeight: "600"
-    },
-    btnPrimary: {
-      padding: "10px 20px", border: "none", background: "#2563eb",
-      color: "white", borderRadius: "8px", cursor: "pointer", fontWeight: "600"
+    btn: (variant) => ({
+      padding: "10px 20px", borderRadius: "10px", fontSize: "14px", fontWeight: "600",
+      cursor: "pointer", border: variant === "primary" ? "none" : "1px solid #e2e8f0",
+      background: variant === "primary" ? "#0f172a" : "#ffffff",
+      color: variant === "primary" ? "#ffffff" : "#475569",
+      transition: "all 0.2s"
+    }),
+    invoiceBtn: {
+        background: "#eff6ff", color: "#2563eb", border: "none", padding: "8px 16px",
+        borderRadius: "8px", fontWeight: "600", fontSize: "13px", cursor: "pointer",
+        display: "flex", alignItems: "center", gap: "6px"
     }
   };
 
-  // Reusable Field Component
-  const DetailField = ({ label, name, value, type = "text", fullWidth = false }) => (
-    <div style={{ ...styles.fieldGroup, width: fullWidth ? "100%" : "auto" }}>
+  const InfoRow = ({ label, value, name, type = "text" }) => (
+    <div style={styles.fieldRow}>
       <span style={styles.label}>{label}</span>
       {isEditing ? (
-        <input style={styles.input} type={type} name={name} value={value} onChange={handleInputChange} />
+        <div style={{ width: "60%" }}>
+           <input style={styles.input} name={name} value={value} onChange={handleInputChange} type={type} />
+        </div>
       ) : (
-        <div style={styles.value}>{value || "N/A"}</div>
+        <span style={styles.value}>{value || "-"}</span>
       )}
     </div>
   );
@@ -195,154 +222,158 @@ const OrderDetailsModal = ({ order, onClose }) => {
     <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div style={styles.modal}>
         
-        {/* Header */}
+        {/* --- HEADER --- */}
         <div style={styles.header}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <h2 style={styles.headerTitle}>Order Details</h2>
-            <span style={{ fontSize: "14px", color: "#64748b", background: "#f1f5f9", padding: "4px 8px", borderRadius: "6px" }}>
-              #{editableOrder._id.slice(-6).toUpperCase()}
-            </span>
-          </div>
-          
-          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-            <button style={styles.btnIcon} onClick={handleDownloadInvoice}>
-              ⬇ Download Invoice
-            </button>
-            <button onClick={onClose} style={styles.closeBtn}>&times;</button>
-          </div>
+           <div style={styles.headerLeft}>
+              <span style={styles.orderId}>ORDER #{editableOrder._id.slice(-6).toUpperCase()}</span>
+              <h2 style={styles.title}>Order Details</h2>
+           </div>
+           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <button style={styles.invoiceBtn} onClick={handleDownloadInvoice}>
+                 <span>📄</span> Download Invoice
+              </button>
+              <button onClick={onClose} style={{ border: "none", background: "transparent", fontSize: "28px", color: "#94a3b8", cursor: "pointer" }}>&times;</button>
+           </div>
         </div>
 
-        {/* Body */}
+        {/* --- DASHBOARD BODY --- */}
         <div style={styles.body}>
-          
-          {/* Section 1: Customer Details */}
-          <div style={styles.section}>
-            <div style={styles.sectionTitle}>Customer Information</div>
-            <DetailField label="Customer Name" name="customerName" value={editableOrder.customerName} />
-            <DetailField label="Phone Number" name="phone" value={editableOrder.phone} />
-            <DetailField label="Shipping Address" name="address" value={editableOrder.address} />
-            <DetailField label="Pincode" name="pincode" value={editableOrder.pincode} />
-          </div>
+           
+           {/* LEFT COLUMN: CONTEXT */}
+           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              
+              {/* Customer Card */}
+              <div style={styles.card}>
+                 <div style={styles.cardHeader}>👤 Customer Information</div>
+                 <InfoRow label="Name" name="customerName" value={editableOrder.customerName} />
+                 <InfoRow label="Phone" name="phone" value={editableOrder.phone} />
+                 <InfoRow label="Pincode" name="pincode" value={editableOrder.pincode} />
+                 
+                 <div style={{ marginTop: "8px" }}>
+                    <span style={{ ...styles.label, display:"block", marginBottom:"6px" }}>Shipping Address</span>
+                    {isEditing ? (
+                        <textarea style={{ ...styles.input, height: "60px", resize: "none" }} name="address" value={editableOrder.address} onChange={handleInputChange} />
+                    ) : (
+                        <div style={{ ...styles.value, textAlign: "left", lineHeight: "1.5", fontSize: "13px" }}>{editableOrder.address}</div>
+                    )}
+                 </div>
+              </div>
 
-          {/* Section 2: Order & Product Details */}
-          <div style={styles.section}>
-            <div style={styles.sectionTitle}>Order Information</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <DetailField label="Product Price" name="priceAtOrderTime" value={editableOrder.priceAtOrderTime} />
-              <DetailField label="Quantity" name="quantity" value={editableOrder.quantity} />
-            </div>
-             <div style={styles.fieldGroup}>
-               <span style={styles.label}>Order Status</span>
-               {isEditing ? (
-                 <select style={styles.input} name="orderStatus" value={editableOrder.orderStatus} onChange={handleInputChange}>
-                   <option value="Pending">Pending</option>
-                   <option value="Confirmed">Confirmed</option>
-                   <option value="Packed">Packed</option>
-                   <option value="Shipped">Shipped</option>
-                   <option value="Delivered">Delivered</option>
-                   <option value="Cancelled">Cancelled</option>
-                 </select>
-               ) : (
-                 <span style={styles.badge('status', editableOrder.orderStatus)}>{editableOrder.orderStatus}</span>
-               )}
-             </div>
-             <div style={styles.fieldGroup}>
-                <span style={styles.label}>Date Created</span>
-                <div style={styles.value}>{new Date(editableOrder.createdAt).toLocaleString()}</div>
-             </div>
-          </div>
+              {/* Logistics Card */}
+              <div style={styles.card}>
+                 <div style={styles.cardHeader}>🚚 Logistics & Status</div>
+                 <div style={styles.fieldRow}>
+                    <span style={styles.label}>Current Status</span>
+                    {isEditing ? (
+                        <select style={styles.input} name="orderStatus" value={editableOrder.orderStatus} onChange={handleInputChange}>
+                           <option>Pending</option><option>Confirmed</option><option>Packed</option><option>Shipped</option><option>Delivered</option><option>Cancelled</option>
+                        </select>
+                    ) : (
+                        <span style={styles.badge(editableOrder.orderStatus)}>{editableOrder.orderStatus}</span>
+                    )}
+                 </div>
+                 <InfoRow label="AWB Number" name="awb" value={editableOrder.awb} />
+                 <InfoRow label="Agent Name" name="agentName" value={editableOrder.agentId?.name || "Unassigned"} />
+                 <div style={{ paddingTop: "12px", borderTop: "1px dashed #f1f5f9" }}>
+                    <span style={{ fontSize:"11px", color:"#94a3b8", fontWeight:"600", textTransform:"uppercase" }}>Remarks</span>
+                    <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#334155" }}>{editableOrder.remarks || "No remarks provided."}</p>
+                 </div>
+              </div>
+           </div>
 
-          {/* Section 3: Payment & Financials */}
-          <div style={styles.fullWidth}>
-             <div style={styles.sectionTitle}>Payment Details</div>
-             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "20px", background: "#f8fafc", padding: "20px", borderRadius: "12px" }}>
-                
-                <div style={styles.fieldGroup}>
-                  <span style={styles.label}>Payment Mode</span>
-                  {isEditing ? (
-                    <select style={styles.input} name="paymentMode" value={editableOrder.paymentMode} onChange={handleInputChange}>
-                      <option value="COD">COD</option>
-                      <option value="Full Payment">Full Payment</option>
-                      <option value="Partial Payment">Partial Payment</option>
-                    </select>
-                  ) : (
-                    <div style={{ fontWeight: "600", color: "#0f172a" }}>{editableOrder.paymentMode}</div>
-                  )}
-                </div>
+           {/* RIGHT COLUMN: FINANCIALS */}
+           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              
+              {/* Payment Summary Card */}
+              <div style={styles.card}>
+                 <div style={styles.cardHeader}>💳 Payment Summary</div>
+                 
+                 <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "12px", marginBottom: "10px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <span style={{ fontSize: "13px", color: "#64748b", fontWeight: "600" }}>TOTAL AMOUNT</span>
+                    <span style={{ fontSize: "20px", color: "#0f172a", fontWeight: "800" }}>₹{editableOrder.totalAmount?.toLocaleString()}</span>
+                 </div>
 
-                <div style={styles.fieldGroup}>
-                  <span style={styles.label}>Payment Status</span>
-                  {isEditing ? (
-                    <select style={styles.input} name="paymentStatus" value={editableOrder.paymentStatus} onChange={handleInputChange}>
-                      <option value="Pending">Pending</option>
-                      <option value="Paid">Paid</option>
-                      <option value="Failed">Failed</option>
-                    </select>
-                  ) : (
-                    <span style={styles.badge('payment', editableOrder.paymentStatus)}>{editableOrder.paymentStatus}</span>
-                  )}
-                </div>
+                 <div style={styles.fieldRow}>
+                    <span style={styles.label}>Payment Mode</span>
+                    {isEditing ? (
+                       <div style={{ width: "60%" }}>
+                         <select style={styles.input} name="paymentMode" value={editableOrder.paymentMode} onChange={handleInputChange}>
+                            <option value="COD">COD</option><option value="Full Payment">Full Payment</option><option value="Partial Payment">Partial Payment</option>
+                         </select>
+                       </div>
+                    ) : (
+                       <span style={styles.badge(editableOrder.paymentMode)}>{editableOrder.paymentMode}</span>
+                    )}
+                 </div>
 
-                <div style={styles.fieldGroup}>
-                   <span style={styles.label}>Total Amount</span>
-                   <div style={{ fontSize: "18px", fontWeight: "700", color: "#0f172a" }}>₹{editableOrder.totalAmount?.toLocaleString()}</div>
-                </div>
+                 <div style={styles.fieldRow}>
+                    <span style={styles.label}>Payment Status</span>
+                    {isEditing ? (
+                       <div style={{ width: "60%" }}>
+                        <select style={styles.input} name="paymentStatus" value={editableOrder.paymentStatus} onChange={handleInputChange}>
+                           <option>Pending</option><option>Paid</option><option>Failed</option>
+                        </select>
+                       </div>
+                    ) : (
+                       <span style={styles.badge(editableOrder.paymentStatus)}>{editableOrder.paymentStatus}</span>
+                    )}
+                 </div>
 
-                {/* --- CONDITIONAL RENDERING FOR PARTIAL PAYMENT --- */}
-                {editableOrder.paymentMode === "Partial Payment" && (
-                  <>
-                    <div style={styles.fieldGroup}>
-                      <span style={styles.label}>Deposited Amount</span>
-                      {isEditing ? (
-                         <input style={styles.input} type="number" name="depositedAmount" value={editableOrder.depositedAmount} onChange={handleInputChange} />
-                      ) : (
-                        <div style={{ color: "#16a34a", fontWeight: "600" }}>₹{editableOrder.depositedAmount?.toLocaleString()}</div>
-                      )}
+                 {/* --- CONDITIONAL LOGIC FOR PARTIAL --- */}
+                 {editableOrder.paymentMode === "Partial Payment" && (
+                    <div style={{ marginTop: "12px", background: "#f0f9ff", padding: "16px", borderRadius: "10px", border: "1px dashed #bae6fd" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", alignItems: "center" }}>
+                           <span style={{ fontSize: "13px", color: "#0369a1", fontWeight: "600" }}>Deposited (Paid)</span>
+                           {isEditing ? (
+                               <input style={{...styles.input, width: "80px", background:"white" }} type="number" name="depositedAmount" value={editableOrder.depositedAmount} onChange={handleInputChange} />
+                           ) : (
+                               <span style={{ color: "#0284c7", fontWeight: "700" }}>₹{editableOrder.depositedAmount?.toLocaleString()}</span>
+                           )}
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                           <span style={{ fontSize: "13px", color: "#b91c1c", fontWeight: "600" }}>Remaining (Due)</span>
+                           {isEditing ? (
+                               <input style={{...styles.input, width: "80px", background:"white" }} type="number" name="remainingAmount" value={editableOrder.remainingAmount} onChange={handleInputChange} />
+                           ) : (
+                               <span style={{ color: "#dc2626", fontWeight: "700" }}>₹{editableOrder.remainingAmount?.toLocaleString()}</span>
+                           )}
+                        </div>
                     </div>
-                    
-                    <div style={styles.fieldGroup}>
-                      <span style={styles.label}>Remaining Amount</span>
-                      {isEditing ? (
-                         <input style={styles.input} type="number" name="remainingAmount" value={editableOrder.remainingAmount} onChange={handleInputChange} />
-                      ) : (
-                        <div style={{ color: "#dc2626", fontWeight: "600" }}>₹{editableOrder.remainingAmount?.toLocaleString()}</div>
-                      )}
+                 )}
+              </div>
+
+              {/* Items Card */}
+              <div style={styles.card}>
+                 <div style={styles.cardHeader}>📦 Order Items</div>
+                 <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+                    <div style={{ height: "50px", width: "50px", background: "#f1f5f9", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }}>🛍️</div>
+                    <div style={{ flex: 1 }}>
+                       <div style={{ fontSize: "14px", fontWeight: "700", color: "#0f172a" }}>Product ID: {editableOrder.productId?._id?.slice(-6) || "N/A"}</div>
+                       <div style={{ fontSize: "12px", color: "#64748b" }}>Unit Price: ₹{editableOrder.priceAtOrderTime}</div>
                     </div>
-                  </>
-                )}
-                {/* ------------------------------------------------ */}
-             </div>
-          </div>
-
-          {/* Section 4: Logistics & Internal */}
-          <div style={styles.fullWidth}>
-             <div style={styles.sectionTitle}>Logistics & Internal</div>
-             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-                <DetailField label="Assigned Agent" name="agentName" value={editableOrder.agentId?.name || "Unassigned"} />
-                <DetailField label="AWB Number" name="awb" value={editableOrder.awb} />
-                <div style={{ gridColumn: "span 2" }}>
-                   <DetailField label="Remarks" name="remarks" value={editableOrder.remarks} fullWidth />
-                </div>
-             </div>
-          </div>
-
+                    <div style={{ textAlign: "right" }}>
+                       <div style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>QTY: {editableOrder.quantity}</div>
+                       <div style={{ fontSize: "14px", fontWeight: "700", color: "#0f172a" }}>₹{editableOrder.totalAmount}</div>
+                    </div>
+                 </div>
+              </div>
+           </div>
         </div>
 
-        {/* Footer */}
+        {/* --- FOOTER --- */}
         <div style={styles.footer}>
            {isEditing ? (
-             <>
-               <button onClick={() => { setIsEditing(false); setEditableOrder(order); }} style={styles.btnSecondary}>Cancel</button>
-               <button onClick={handleSave} style={{ ...styles.btnPrimary, background: "#16a34a" }}>Save Changes</button>
-             </>
+              <>
+                <button style={styles.btn("secondary")} onClick={() => { setIsEditing(false); setEditableOrder(order); }}>Cancel</button>
+                <button style={styles.btn("primary")} onClick={handleSave}>Save Changes</button>
+              </>
            ) : (
-             <>
-               <button onClick={onClose} style={styles.btnSecondary}>Close</button>
-               <button onClick={() => setIsEditing(true)} style={styles.btnPrimary}>Edit Order</button>
-             </>
+              <>
+                <button style={styles.btn("secondary")} onClick={onClose}>Close</button>
+                <button style={styles.btn("primary")} onClick={() => setIsEditing(true)}>Edit Order</button>
+              </>
            )}
         </div>
-
       </div>
     </div>
   );
