@@ -36,7 +36,7 @@ const api = {
   GetAll: BaseUrl + "orders/orders-list",
   GetOne: BaseUrl + "orders/order-details",          
   Update: BaseUrl + "orders/updateOrder",    
-  Delete: BaseUrl + "orders/deleteOrder",     
+  Delete: BaseUrl + "orders/delete-order",     
 }
 
 };
