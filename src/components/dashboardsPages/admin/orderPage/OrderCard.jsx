@@ -1,201 +1,126 @@
 import React from "react";
-import { User, Package, Calendar, CreditCard, ChevronRight, MapPin } from "lucide-react";
+import {
+  User,
+  Package,
+  Calendar,
+  CreditCard,
+  ChevronRight,
+  MapPin,
+} from "lucide-react";
+
+const ORDER_STATUSES = [
+  "Pending", "Confirmed", "Packed", "Shipped", "In Transit",
+  "Out For Delivery", "Delivered", "RTO Initiated", "RTO Received",
+  "Returned", "Cancelled",
+];
+
+const getTheme = (status = "Pending") => {
+  switch (status) {
+    case "Delivered":
+      return { text: "text-green-600", bg: "bg-green-50", border: "border-green-200" };
+    case "Cancelled":
+    case "Returned":
+    case "RTO Initiated":
+    case "RTO Received":
+      return { text: "text-red-600", bg: "bg-red-50", border: "border-red-200" };
+    case "Shipped":
+    case "In Transit":
+    case "Out For Delivery":
+      return { text: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" };
+    case "Confirmed":
+    case "Packed":
+      return { text: "text-violet-600", bg: "bg-violet-50", border: "border-violet-200" };
+    default:
+      return { text: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200" };
+  }
+};
 
 const OrderCard = ({ order, onClick }) => {
-  
-  // 1. Determine Color Theme based on Status
-  const getTheme = (status) => {
-    switch (status) {
-      case "Delivered": return { color: "#16a34a", bg: "#dcfce7", border: "#16a34a" }; // Green
-      case "Cancelled": return { color: "#dc2626", bg: "#fee2e2", border: "#dc2626" }; // Red
-      case "Shipped": return { color: "#4f46e5", bg: "#e0e7ff", border: "#4f46e5" };   // Indigo
-      default: return { color: "#ca8a04", bg: "#fef9c3", border: "#ca8a04" };          // Yellow (Pending)
-    }
-  };
+  // Handle data keys from your backend (orderStatus vs status)
+  const rawStatus = order?.orderStatus || order?.status || "Pending";
+  const status = ORDER_STATUSES.includes(rawStatus) ? rawStatus : "Pending";
+  const theme = getTheme(status);
 
-  const theme = getTheme(order.status);
-
-  // 2. CSS Styles
-  const styles = {
-    card: {
-      background: "white",
-      borderRadius: "16px",
-      border: "1px solid #e2e8f0",
-      boxShadow: "0 2px 4px rgba(0,0,0,0.04)",
-      cursor: "pointer",
-      transition: "all 0.2s ease-in-out",
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "space-between",
-      position: "relative",
-      overflow: "hidden",
-      minHeight: "220px"
-    },
-    topStrip: {
-      height: "4px",
-      width: "100%",
-      background: theme.border,
-      position: "absolute",
-      top: 0, left: 0
-    },
-    header: {
-      padding: "20px 20px 10px 20px",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "flex-start"
-    },
-    avatar: {
-      width: "42px",
-      height: "42px",
-      borderRadius: "50%",
-      background: "#f1f5f9",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: "#64748b",
-      border: "1px solid #e2e8f0"
-    },
-    statusBadge: {
-      fontSize: "11px",
-      fontWeight: "700",
-      textTransform: "uppercase",
-      padding: "4px 10px",
-      borderRadius: "20px",
-      background: theme.bg,
-      color: theme.color,
-      letterSpacing: "0.5px"
-    },
-    body: {
-      padding: "0 20px",
-      flex: 1
-    },
-    customerName: {
-      fontSize: "16px",
-      fontWeight: "700",
-      color: "#0f172a",
-      marginTop: "12px",
-      marginBottom: "2px"
-    },
-    location: {
-      fontSize: "13px",
-      color: "#64748b",
-      display: "flex",
-      alignItems: "center",
-      gap: "4px",
-      marginBottom: "16px"
-    },
-    infoGrid: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: "12px",
-      paddingTop: "16px",
-      borderTop: "1px dashed #e2e8f0"
-    },
-    infoItem: {
-      display: "flex",
-      flexDirection: "column",
-      gap: "4px"
-    },
-    infoLabel: {
-      fontSize: "11px",
-      color: "#94a3b8",
-      fontWeight: "600",
-      textTransform: "uppercase"
-    },
-    infoValue: {
-      fontSize: "13px",
-      color: "#334155",
-      fontWeight: "500",
-      display: "flex",
-      alignItems: "center",
-      gap: "6px"
-    },
-    footer: {
-      marginTop: "20px",
-      padding: "12px 20px",
-      background: "#f8fafc",
-      borderTop: "1px solid #e2e8f0",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      fontSize: "13px",
-      fontWeight: "600",
-      color: "#475569"
-    }
-  };
+  // Handle Product Name extraction (nested or flat)
+  const productName = order?.productId?.name || order?.productName || "Product";
 
   return (
-    <div 
-      onClick={onClick}
-      style={styles.card}
-      // Hover Lift Effect
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-5px)";
-        e.currentTarget.style.boxShadow = "0 12px 20px -5px rgba(0, 0, 0, 0.1)";
-        e.currentTarget.style.borderColor = theme.border; // Border changes to status color on hover
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.04)";
-        e.currentTarget.style.borderColor = "#e2e8f0";
-      }}
+    <div
+      onClick={() => onClick(order)} // Pass the specific order object back
+      className={`group relative flex flex-col justify-between rounded-2xl border bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer ${theme.border}`}
     >
-      {/* 1. Top Color Strip */}
-      <div style={styles.topStrip}></div>
+      {/* Top Colored Strip */}
+      <div className={`absolute top-0 left-0 h-1.5 w-full rounded-t-2xl ${theme.bg.replace("50", "500")}`} />
 
-      {/* 2. Header: Avatar & Status */}
-      <div style={styles.header}>
-        <div style={styles.avatar}>
-          <User size={20} />
+      {/* Header */}
+      <div className="flex items-start justify-between p-5 pb-3 pt-6">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 shadow-sm">
+          <User size={18} />
         </div>
-        <span style={styles.statusBadge}>{order.status}</span>
+        <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${theme.bg} ${theme.text}`}>
+          {status}
+        </span>
       </div>
 
-      {/* 3. Main Content */}
-      <div style={styles.body}>
-        <h3 style={styles.customerName}>{order.customerName}</h3>
-        <div style={styles.location}>
-          <MapPin size={12} /> {order.address.split(',')[0]} {/* Shows just the city/area */}
+      {/* Body */}
+      <div className="flex-1 px-5">
+        <h3 className="mt-2 text-lg font-bold text-slate-900 line-clamp-1">
+          {order?.customerName || "Unknown Customer"}
+        </h3>
+
+        <div className="mb-5 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+          <MapPin size={12} />
+          <span className="line-clamp-1">{order?.address || "No Address"}</span>
         </div>
 
-        {/* Data Grid */}
-        <div style={styles.infoGrid}>
-          <div style={styles.infoItem}>
-            <span style={styles.infoLabel}>Product</span>
-            <div style={styles.infoValue}>
-              <Package size={14} color="#64748b" /> {order.productName}
+        {/* Info Grid */}
+        <div className="grid grid-cols-2 gap-y-4 gap-x-2 border-t border-dashed border-slate-200 pt-4 pb-2">
+          
+          {/* Product */}
+          <div>
+            <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Product</p>
+            <div className="mt-1 flex items-center gap-1.5 text-sm font-medium text-slate-700">
+              <Package size={14} className="text-slate-400" />
+              <span className="truncate">{productName}</span>
             </div>
           </div>
 
-          <div style={styles.infoItem}>
-            <span style={styles.infoLabel}>Amount</span>
-            <div style={{ ...styles.infoValue, color: "#0f172a", fontWeight: "700" }}>
-              ₹ {order.totalAmount}
+          {/* Amount */}
+          <div>
+            <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Amount</p>
+            <p className="mt-1 text-sm font-bold text-slate-900">
+              ₹ {order?.totalAmount?.toLocaleString() ?? 0}
+            </p>
+          </div>
+
+          {/* Date */}
+          <div>
+            <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Date</p>
+            <div className="mt-1 flex items-center gap-1.5 text-sm font-medium text-slate-700">
+              <Calendar size={14} className="text-slate-400" />
+              {order?.createdAt ? new Date(order.createdAt).toLocaleDateString() : "N/A"}
             </div>
           </div>
 
-          <div style={styles.infoItem}>
-             <span style={styles.infoLabel}>Date</span>
-             <div style={styles.infoValue}>
-                <Calendar size={14} color="#64748b" /> {order.createdAt}
-             </div>
-          </div>
-
-          <div style={styles.infoItem}>
-             <span style={styles.infoLabel}>Payment</span>
-             <div style={styles.infoValue}>
-                <CreditCard size={14} color="#64748b" /> {order.paymentStatus}
-             </div>
+          {/* Payment */}
+          <div>
+            <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Payment</p>
+            <div className="mt-1 flex items-center gap-1.5 text-sm font-medium text-slate-700">
+              <CreditCard size={14} className="text-slate-400" />
+              <span className={order?.paymentMode === "Partial Payment" ? "text-orange-600 font-semibold" : ""}>
+                 {order?.paymentStatus || "Pending"}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 4. Footer Action */}
-      <div style={styles.footer}>
-        <span>#{order.orderId}</span>
-        <div style={{ display: "flex", alignItems: "center", gap: "4px", color: theme.color }}>
-          Details <ChevronRight size={16} />
-        </div>
+      {/* Footer */}
+      <div className="mt-2 flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-5 py-3 text-xs font-semibold text-slate-500 rounded-b-2xl">
+        <span className="font-mono">#{order?._id?.slice(-6).toUpperCase() || "----"}</span>
+        <span className={`flex items-center gap-1 transition-transform group-hover:translate-x-1 ${theme.text}`}>
+          View Details <ChevronRight size={14} />
+        </span>
       </div>
     </div>
   );
