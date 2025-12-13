@@ -1,16 +1,23 @@
-import React from "react";
+import React, { useState } from "react";
 
 const OrderDetailsModal = ({ order, onClose }) => {
   if (!order) return null;
 
-  // 1. Helper: Format Date
+  // 1. STATE for Editing
+  const [isEditing, setIsEditing] = useState(false);
+  // Use a copy of the prop data for local editing state
+  const [editableOrder, setEditableOrder] = useState(order); 
+
+  // --- Utility Functions ---
+
+  // 2. Helper: Format Date
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     const options = { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" };
     return new Date(dateString).toLocaleDateString("en-IN", options);
   };
 
-  // 2. Helper: Format Currency
+  // 3. Helper: Format Currency
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
@@ -18,12 +25,53 @@ const OrderDetailsModal = ({ order, onClose }) => {
       minimumFractionDigits: 0
     }).format(amount);
   };
-
-  // Mock Invoice Download Function
-  const handleDownloadInvoice = () => {
-    alert(`Downloading invoice for Order #${order._id}...`);
+  
+  // 4. Handle Input Change
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    // Handle nested fields like agentId.name
+    if (name.includes('.')) {
+      const [parent, child] = name.split('.');
+      setEditableOrder(prev => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent],
+          [child]: value
+        }
+      }));
+    } else {
+      setEditableOrder(prev => ({ ...prev, [name]: value }));
+    }
   };
 
+  // 5. Save/Cancel Handlers
+  const handleSave = () => {
+    // 💡 Placeholder for actual API call
+    console.log("Saving changes:", editableOrder);
+    alert("Order updated successfully! (Simulated)");
+    
+    // ⚠️ In a real application, you would:
+    // 1. Call your backend API with the 'editableOrder' data.
+    // 2. Await the response.
+    // 3. If successful, update the main 'order' state in the parent component
+    //    or refetch the data.
+    // 4. Then, set isEditing(false);
+
+    setIsEditing(false); // Exit editing mode
+  };
+
+  const handleCancel = () => {
+    // Revert the local state back to the original prop data
+    setEditableOrder(order); 
+    setIsEditing(false); // Exit editing mode
+  };
+  
+  // 6. Mock Invoice Download Function
+  const handleDownloadInvoice = () => {
+    alert(`Downloading invoice for Order #${editableOrder._id}...`);
+  };
+
+  // --- Styles (Moved inside to access isEditing for dynamic styles if needed) ---
   const styles = {
     overlay: {
       position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
@@ -57,7 +105,8 @@ const OrderDetailsModal = ({ order, onClose }) => {
       padding: "20px 32px",
       background: "#fff",
       borderTop: "1px solid #f1f5f9",
-      display: "flex", justifyContent: "space-between", alignItems: "center"
+      display: "flex", justifyContent: "space-between", alignItems: "center",
+      gap: "10px"
     },
     label: { 
       fontSize: "11px", color: "#64748b", textTransform: "uppercase", 
@@ -66,6 +115,12 @@ const OrderDetailsModal = ({ order, onClose }) => {
     value: { 
       fontSize: "14px", color: "#0f172a", fontWeight: "500", margin: 0,
       lineHeight: "1.5" 
+    },
+    input: {
+      width: "100%", padding: "8px 12px", border: "1px solid #e2e8f0", 
+      borderRadius: "6px", fontSize: "14px", color: "#0f172a", 
+      outline: "none", transition: "border-color 0.2s",
+      backgroundColor: isEditing ? "white" : "#f8fafc" // Highlight non-editable
     },
     sectionTitle: { 
       fontSize: "15px", fontWeight: "700", color: "#334155", 
@@ -90,18 +145,61 @@ const OrderDetailsModal = ({ order, onClose }) => {
     }
   };
 
+  // --- Reusable Editable Field Component ---
+  const EditableField = ({ label, value, name, type = "text", isTextArea = false }) => (
+    <div style={{ marginBottom: "16px" }}>
+      <span style={styles.label}>{label}</span>
+      {isEditing ? (
+        isTextArea ? (
+          <textarea 
+            name={name} 
+            value={value || ''} 
+            onChange={handleInputChange} 
+            style={{ ...styles.input, height: "80px" }}
+          />
+        ) : (
+          <input 
+            type={type} 
+            name={name} 
+            value={value || ''} 
+            onChange={handleInputChange} 
+            style={styles.input}
+          />
+        )
+      ) : (
+        <p style={styles.value}>{value}</p>
+      )}
+    </div>
+  );
+
+  // --- Reusable ReadOnly Field Component ---
+  const ReadOnlyField = ({ label, value, isCurrency = false, isDate = false }) => (
+    <div>
+      <span style={styles.label}>{label}</span>
+      <p style={{ 
+        ...styles.value, 
+        ...(isCurrency && { fontSize: "16px", fontWeight: "700" }) 
+      }}>
+        {isCurrency ? formatCurrency(value) : isDate ? formatDate(value) : value}
+      </p>
+    </div>
+  );
+  
+  // --- Render Component ---
   return (
-    <div style={styles.overlay} onClick={(e) => { if(e.target === e.currentTarget) onClose() }}>
+    <div style={styles.overlay} onClick={(e) => { if(e.target === e.currentTarget && !isEditing) onClose() }}>
       <div style={styles.modal}>
         
         {/* Header */}
         <div style={styles.header}>
           <div>
-            <h2 style={{ margin: 0, fontSize: "18px", color: "#0f172a" }}>Order Details</h2>
+            <h2 style={{ margin: 0, fontSize: "18px", color: "#0f172a" }}>
+              Order Details {isEditing && <span style={{ fontSize: "12px", color: "#f97316", marginLeft: "10px", background: "#fef3c7", padding: "4px 8px", borderRadius: "4px" }}>EDITING MODE</span>}
+            </h2>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
               <span style={{ fontSize: "13px", color: "#64748b" }}>ID:</span>
               <span style={{ fontFamily: "monospace", background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px", fontSize: "12px", color: "#475569" }}>
-                {order._id}
+                {editableOrder._id}
               </span>
             </div>
           </div>
@@ -111,35 +209,23 @@ const OrderDetailsModal = ({ order, onClose }) => {
         {/* Body */}
         <div style={styles.body}>
           
-          {/* SECTION 1: Product & Financials */}
+          {/* SECTION 1: Product & Financials (Mostly ReadOnly) */}
           <div style={styles.sectionTitle}>📦 Order Information</div>
           <div style={styles.gridTwo}>
-            <div>
-               <span style={styles.label}>Product ID</span>
-               <p style={styles.value}>{order.productId?._id || "Unknown Product"}</p>
-            </div>
-            <div>
-               <span style={styles.label}>Order Date</span>
-               <p style={styles.value}>{formatDate(order.createdAt)}</p>
-            </div>
+            <ReadOnlyField label="Product ID" value={editableOrder.productId?._id || "Unknown Product"} />
+            <ReadOnlyField label="Order Date" value={editableOrder.createdAt} isDate />
           </div>
 
           <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "8px", marginBottom: "32px", border: "1px solid #e2e8f0" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
-                <div>
-                  <span style={styles.label}>Quantity</span>
-                  <p style={styles.value}>x {order.quantity}</p>
-                </div>
-                <div>
-                  <span style={styles.label}>Price / Unit</span>
-                  <p style={styles.value}>{formatCurrency(order.priceAtOrderTime)}</p>
-                </div>
-                <div>
-                  <span style={styles.label}>Total Amount</span>
-                  <p style={{ ...styles.value, fontSize: "16px", fontWeight: "700", color: "#0f172a" }}>
-                    {formatCurrency(order.totalAmount)}
-                  </p>
-                </div>
+                <EditableField 
+                   label="Quantity" 
+                   value={editableOrder.quantity} 
+                   name="quantity" 
+                   type="number"
+                />
+                <ReadOnlyField label="Price / Unit (Order Time)" value={editableOrder.priceAtOrderTime} isCurrency />
+                <ReadOnlyField label="Total Amount" value={editableOrder.totalAmount} isCurrency />
             </div>
           </div>
 
@@ -149,19 +235,10 @@ const OrderDetailsModal = ({ order, onClose }) => {
             {/* SECTION 2: Customer & Agent */}
             <div>
               <div style={styles.sectionTitle}>👤 Customer Details</div>
-              <div style={{ marginBottom: "16px" }}>
-                 <span style={styles.label}>Name</span>
-                 <p style={styles.value}>{order.customerName}</p>
-              </div>
-              <div style={{ marginBottom: "16px" }}>
-                 <span style={styles.label}>Phone</span>
-                 <p style={styles.value}>{order.phone}</p>
-              </div>
-              <div>
-                 <span style={styles.label}>Address</span>
-                 <p style={styles.value}>{order.address}</p>
-                 <p style={{ ...styles.value, color: "#64748b", fontSize: "13px" }}>Pincode: {order.pincode}</p>
-              </div>
+              <EditableField label="Name" value={editableOrder.customerName} name="customerName" />
+              <EditableField label="Phone" value={editableOrder.phone} name="phone" />
+              <EditableField label="Address" value={editableOrder.address} name="address" />
+              <EditableField label="Pincode" value={editableOrder.pincode} name="pincode" />
             </div>
 
             {/* SECTION 3: Status & Shipping */}
@@ -170,73 +247,143 @@ const OrderDetailsModal = ({ order, onClose }) => {
               <div style={{ marginBottom: "16px", display: "flex", gap: "12px" }}>
                  <div>
                     <span style={styles.label}>Order Status</span>
-                    <span style={styles.statusTag(order.orderStatus)}>{order.orderStatus}</span>
+                    {isEditing ? (
+                      <select 
+                        name="orderStatus" 
+                        value={editableOrder.orderStatus} 
+                        onChange={handleInputChange} 
+                        style={styles.input}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Processing">Processing</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    ) : (
+                       <span style={styles.statusTag(editableOrder.orderStatus)}>{editableOrder.orderStatus}</span>
+                    )}
                  </div>
                  <div>
-                    <span style={styles.label}>Payment</span>
-                    <span style={{ 
-                        color: order.paymentStatus === "Paid" ? "#16a34a" : "#d97706", 
+                    <span style={styles.label}>Payment Status</span>
+                    {isEditing ? (
+                      <select 
+                        name="paymentStatus" 
+                        value={editableOrder.paymentStatus} 
+                        onChange={handleInputChange} 
+                        style={styles.input}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Paid">Paid</option>
+                        <option value="Failed">Failed</option>
+                      </select>
+                    ) : (
+                      <span style={{ 
+                        color: editableOrder.paymentStatus === "Paid" ? "#16a34a" : "#d97706", 
                         fontWeight: "600", fontSize: "14px"
-                    }}>{order.paymentStatus}</span>
+                      }}>{editableOrder.paymentStatus}</span>
+                    )}
                  </div>
               </div>
               
-              <div style={{ marginBottom: "16px" }}>
-                 <span style={styles.label}>Payment Mode</span>
-                 <p style={styles.value}>{order.paymentMode} <span style={{color:"#94a3b8", fontSize:"12px"}}>(₹{order.totalAmount})</span></p>
-              </div>
+              <EditableField label="Payment Mode" value={editableOrder.paymentMode} name="paymentMode" />
 
-              <div style={{ marginBottom: "16px" }}>
-                 <span style={styles.label}>AWB Number</span>
-                 <p style={{ ...styles.value, fontFamily: "monospace", letterSpacing: "1px" }}>
-                    {order.awb || "Not Generated"}
-                 </p>
-              </div>
+              <EditableField label="AWB Number" value={editableOrder.awb} name="awb" />
 
-              {order.agentId && (
+              {editableOrder.agentId && (
                 <div style={{ marginTop: "20px", padding: "10px", background: "#f0f9ff", borderRadius: "6px" }}>
                    <span style={{...styles.label, color: "#0369a1"}}>Managed By Agent</span>
-                   <p style={{...styles.value, fontSize: "13px", color: "#0c4a6e"}}>{order.agentId.name}</p>
-                   <p style={{fontSize: "12px", color: "#0ea5e9"}}>{order.agentId.email}</p>
+                   <EditableField label="Agent Name" value={editableOrder.agentId.name} name="agentId.name" />
+                   <EditableField label="Agent Email" value={editableOrder.agentId.email} name="agentId.email" />
                 </div>
               )}
             </div>
           </div>
           
            {/* Remarks Section */}
-           {order.remarks && (
-            <div style={{ marginTop: "10px" }}>
-                <span style={styles.label}>Remarks</span>
-                <p style={{ fontSize: "13px", color: "#64748b", fontStyle: "italic" }}>"{order.remarks}"</p>
-            </div>
-          )}
+           <EditableField label="Remarks" value={editableOrder.remarks} name="remarks" isTextArea />
 
         </div>
 
         {/* Footer */}
         <div style={styles.footer}>
+          
           <button 
             onClick={onClose}
             style={{ padding: "10px 24px", border: "1px solid #cbd5e1", background: "white", borderRadius: "8px", fontWeight: "600", color: "#475569", cursor: "pointer" }}
           >
             Close
           </button>
-          <button 
-            onClick={handleDownloadInvoice}
-            style={{ 
-              padding: "10px 24px", 
-              border: "none", 
-              background: "#0f172a", 
-              borderRadius: "8px", 
-              fontWeight: "500", 
-              color: "white", 
-              cursor: "pointer",
-              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-              display: "flex", alignItems: "center", gap: "8px"
-            }}
-          >
-            <span>📄</span> Download Invoice
-          </button>
+          
+          <div style={{ display: "flex", gap: "10px" }}>
+            {isEditing ? (
+              <>
+                <button 
+                  onClick={handleCancel}
+                  style={{ 
+                    padding: "10px 24px", 
+                    border: "1px solid #fca5a5", 
+                    background: "#fee2e2", 
+                    borderRadius: "8px", 
+                    fontWeight: "600", 
+                    color: "#dc2626", 
+                    cursor: "pointer"
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleSave}
+                  style={{ 
+                    padding: "10px 24px", 
+                    border: "none", 
+                    background: "#16a34a", 
+                    borderRadius: "8px", 
+                    fontWeight: "500", 
+                    color: "white", 
+                    cursor: "pointer",
+                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                    display: "flex", alignItems: "center", gap: "8px"
+                  }}
+                >
+                  <span>💾</span> Save Changes
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  style={{ 
+                    padding: "10px 24px", 
+                    border: "1px solid #a5b4fc", 
+                    background: "#e0e7ff", 
+                    borderRadius: "8px", 
+                    fontWeight: "600", 
+                    color: "#4f46e5", 
+                    cursor: "pointer"
+                  }}
+                >
+                  ✏️ Edit Details
+                </button>
+                <button 
+                  onClick={handleDownloadInvoice}
+                  style={{ 
+                    padding: "10px 24px", 
+                    border: "none", 
+                    background: "#0f172a", 
+                    borderRadius: "8px", 
+                    fontWeight: "500", 
+                    color: "white", 
+                    cursor: "pointer",
+                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                    display: "flex", alignItems: "center", gap: "8px"
+                  }}
+                >
+                  <span>📄</span> Download Invoice
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
       </div>
