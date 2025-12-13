@@ -10,6 +10,7 @@ const api = {
     GetOwnProfile: BaseUrl + "users/me",
     AdminCreate: BaseUrl + "users",
     AdminGetAll: BaseUrl + "users",
+    GetAllUsers: BaseUrl + "users/getalluser",
     AdminUpdate: BaseUrl + "users/adminUpdate",
     UpdateOwnProfile: BaseUrl + "users/update",
     AdminUpdateStatus: BaseUrl + "users/status",
