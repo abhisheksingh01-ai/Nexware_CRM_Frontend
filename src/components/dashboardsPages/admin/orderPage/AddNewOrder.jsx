@@ -8,24 +8,40 @@ const AddNewOrder = ({ onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   
-  // State for Dropdowns
+  // Dropdown Data
   const [products, setProducts] = useState([]);
   const [agents, setAgents] = useState([]);
 
+  // CONSTANTS FOR DROPDOWNS
+  const ORDER_STATUSES = [
+    "Pending", "Confirmed", "Packed", "Shipped", "In Transit", 
+    "Out For Delivery", "Delivered", "RTO Initiated", "RTO Received", 
+    "Returned", "Cancelled"
+  ];
+
+  const PAYMENT_STATUSES = ["Pending", "Paid", "Failed", "Refunded"];
+
+  // Form State
   const [formData, setFormData] = useState({
     customerName: "",
     phone: "",
     address: "",
     pincode: "",
-    productId: "", // This will store the _id
+    productId: "", 
     quantity: 1,
     priceAtOrderTime: "",
-    agentId: "",   // This will store the _id
+    agentId: "",
+    awb: "", 
     paymentMode: "COD",
+    orderStatus: "Pending",  
+    paymentStatus: "Pending", 
     remarks: ""
   });
 
-  // 1. Fetch Data on Mount
+  // Derived State for Display
+  const displayedTotal = (Number(formData.priceAtOrderTime) || 0) * (Number(formData.quantity) || 1);
+
+  // 1. Fetch Products & Agents on Mount
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -33,13 +49,8 @@ const AddNewOrder = ({ onClose, onSuccess }) => {
            axios.get(api.Product.GetAll, { headers: { Authorization: `Bearer ${authUser?.token}` } }),
            axios.get(api.User.GetAllUsers || api.User.GetAll, { headers: { Authorization: `Bearer ${authUser?.token}` } })
         ]);
-
-        // Debugging: Check console to see what the product field is actually called
-        console.log("Products Fetched:", productRes.data.data); 
-
         setProducts(productRes.data.data || []);
         setAgents(userRes.data.data || []); 
-
       } catch (err) {
         console.error("Error fetching dropdown data:", err);
         setError("Failed to load products or agents list.");
@@ -48,37 +59,37 @@ const AddNewOrder = ({ onClose, onSuccess }) => {
     fetchData();
   }, [authUser]);
 
-  // 2. Handle Product Selection
-  // Sets the ID to state, but finds the price from the object
+  // 2. Handle Product Selection (Auto-fill Price)
   const handleProductChange = (e) => {
-    const selectedId = e.target.value; // This is the _id
-    
+    const selectedId = e.target.value;
     const selectedProduct = products.find(p => p._id === selectedId);
     
     setFormData(prev => ({
       ...prev,
-      productId: selectedId, // Stores ID for submission
-      // Auto-fill price if product found
+      productId: selectedId,
       priceAtOrderTime: selectedProduct ? selectedProduct.price : prev.priceAtOrderTime
     }));
   };
 
+  // 3. General Input Change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // 4. Validation
   const validateForm = () => {
-    const phoneRegex = /^[6-9]\d{9}$/;
+    const phoneRegex = /^[6-9]\d{9}$/; 
     const pincodeRegex = /^\d{6}$/;
 
     if (!formData.customerName.trim()) return "Customer Name is required.";
-    if (!phoneRegex.test(formData.phone)) return "Invalid Phone Number.";
     if (!formData.address.trim()) return "Address is required.";
-    if (!pincodeRegex.test(formData.pincode)) return "Invalid Pincode.";
-    if (!formData.productId.trim()) return "Product is required.";
-    if (!formData.agentId.trim()) return "Agent is required.";
-    if (!formData.priceAtOrderTime) return "Price is required.";
+    if (!pincodeRegex.test(formData.pincode)) return "Pincode must be exactly 6 digits.";
+    if (!phoneRegex.test(formData.phone)) return "Phone must be 10 digits & start with 6-9.";
+    if (!formData.productId.trim()) return "Please select a Product.";
+    if (!formData.agentId.trim()) return "Please select an Agent.";
+    if (formData.quantity < 1) return "Quantity must be at least 1.";
+    if (!formData.priceAtOrderTime || Number(formData.priceAtOrderTime) < 0) return "Price cannot be negative.";
     
     return null;
   };
@@ -91,16 +102,15 @@ const AddNewOrder = ({ onClose, onSuccess }) => {
       setError(validationError);
       return;
     }
-    
-    // Debugging: Verify that IDs are being sent, not names
-    console.log("Submitting Data:", formData); 
 
     try {
       setLoading(true);
       const token = authUser?.token;
+      
       await axios.post(api.Order.Create, formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
+
       if (onSuccess) onSuccess(); 
       onClose(); 
     } catch (err) {
@@ -140,9 +150,7 @@ const AddNewOrder = ({ onClose, onSuccess }) => {
       display: "flex", justifyContent: "space-between", alignItems: "center",
       background: "linear-gradient(to right, #f8fafc, #ffffff)"
     },
-    headerTitle: {
-      fontSize: "20px", fontWeight: "700", color: "#1e293b", margin: 0
-    },
+    headerTitle: { fontSize: "20px", fontWeight: "700", color: "#1e293b", margin: 0 },
     closeButton: {
       background: "#f1f5f9", border: "none", borderRadius: "50%",
       width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center",
@@ -158,13 +166,16 @@ const AddNewOrder = ({ onClose, onSuccess }) => {
       marginBottom: "16px", textTransform: "uppercase", letterSpacing: "1px" 
     },
     inputGroup: { marginBottom: "20px" },
-    label: { 
-      display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "8px" 
-    },
+    label: { display: "block", fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "8px" },
     input: {
       width: "100%", padding: "12px 16px", borderRadius: "8px",
       border: "1px solid #e2e8f0", fontSize: "14px", color: "#0f172a",
       outline: "none", backgroundColor: "#f8fafc"
+    },
+    readOnlyInput: {
+      width: "100%", padding: "12px 16px", borderRadius: "8px",
+      border: "1px solid #cbd5e1", fontSize: "14px", fontWeight: "700",
+      color: "#1e293b", backgroundColor: "#e2e8f0", cursor: "not-allowed"
     },
     gridTwo: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" },
     errorBox: {
@@ -188,71 +199,77 @@ const AddNewOrder = ({ onClose, onSuccess }) => {
     <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div style={styles.modal}>
         
+        {/* Header */}
         <div style={styles.header}>
           <h2 style={styles.headerTitle}>Create New Order</h2>
           <button onClick={onClose} style={styles.closeButton}>&times;</button>
         </div>
 
+        {/* Body */}
         <div style={styles.body}>
           {error && <div style={styles.errorBox}>⚠️ {error}</div>}
 
           <form id="create-order-form" onSubmit={handleSubmit}>
             
+            {/* 1. Customer Section */}
             <div style={styles.sectionTitle}>Customer Information</div>
             <div style={styles.gridTwo}>
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Customer Name *</label>
-                <input style={styles.input} name="customerName" value={formData.customerName} onChange={handleChange} placeholder="Enter full name" />
+                <input style={styles.input} name="customerName" value={formData.customerName} onChange={handleChange} placeholder="Full Name" />
               </div>
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Phone Number *</label>
-                <input style={styles.input} name="phone" value={formData.phone} onChange={handleChange} placeholder="e.g. 9876543210" maxLength={10} />
+                <input style={styles.input} name="phone" value={formData.phone} onChange={handleChange} placeholder="9876543210" maxLength={10} />
               </div>
             </div>
 
             <div style={styles.inputGroup}>
               <label style={styles.label}>Shipping Address *</label>
-              <input style={styles.input} name="address" value={formData.address} onChange={handleChange} placeholder="House No, Street, Landmark" />
+              <input style={styles.input} name="address" value={formData.address} onChange={handleChange} placeholder="Full shipping address" />
             </div>
 
             <div style={styles.gridTwo}>
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Pincode *</label>
-                <input style={styles.input} name="pincode" value={formData.pincode} onChange={handleChange} placeholder="e.g. 560001" maxLength={6} />
+                <input style={styles.input} name="pincode" value={formData.pincode} onChange={handleChange} placeholder="560001" maxLength={6} />
               </div>
               <div style={styles.inputGroup}>
-                <label style={styles.label}>Payment Mode</label>
-                <select style={{ ...styles.input, cursor: "pointer" }} name="paymentMode" value={formData.paymentMode} onChange={handleChange}>
-                  <option value="COD">COD (Cash on Delivery)</option>
-                  <option value="Online">Online Payment</option>
+                <label style={styles.label}>Order Status</label>
+                <select 
+                  style={{ ...styles.input, cursor: "pointer" }} 
+                  name="orderStatus" 
+                  value={formData.orderStatus} 
+                  onChange={handleChange}
+                >
+                  {ORDER_STATUSES.map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
                 </select>
               </div>
             </div>
 
             <div style={{ height: "1px", background: "#f1f5f9", margin: "10px 0 24px 0" }}></div>
 
+            {/* 2. Order Details Section */}
             <div style={styles.sectionTitle}>Order Details</div>
+            
             <div style={styles.gridTwo}>
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Select Product *</label>
-                
-                {/* KEY CHANGE: The value is the ID, so ID is sent. 
-                   The display checks for name, title, or productName. 
-                */}
                 <select 
                   style={{ ...styles.input, cursor: "pointer" }} 
                   name="productId" 
                   value={formData.productId} 
                   onChange={handleProductChange}
                 >
-                  <option value="">-- Select a Product --</option>
+                  <option value="">-- Select Product --</option>
                   {products.map((prod) => (
                     <option key={prod._id} value={prod._id}>
-                      {prod.name || prod.title || prod.productName || "Unnamed Product"} 
+                      {prod.name || prod.title || prod.productName || "Unnamed Product"}
                     </option>
                   ))}
                 </select>
-
               </div>
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Quantity</label>
@@ -262,34 +279,94 @@ const AddNewOrder = ({ onClose, onSuccess }) => {
 
             <div style={styles.gridTwo}>
               <div style={styles.inputGroup}>
-                <label style={styles.label}>Price (At Order Time) *</label>
-                <input style={styles.input} type="number" name="priceAtOrderTime" value={formData.priceAtOrderTime} onChange={handleChange} placeholder="0.00" />
+                <label style={styles.label}>Price (Per Unit) *</label>
+                <div style={{ position: "relative" }}>
+                    <span style={{ position: "absolute", left: "12px", top: "12px", color: "#94a3b8" }}>₹</span>
+                    <input 
+                      style={{ ...styles.input, paddingLeft: "30px" }} 
+                      type="number" 
+                      name="priceAtOrderTime" 
+                      value={formData.priceAtOrderTime} 
+                      onChange={handleChange} 
+                    />
+                </div>
               </div>
               <div style={styles.inputGroup}>
-                <label style={styles.label}>Select Agent *</label>
+                <label style={styles.label}>Total Amount (Auto)</label>
+                <div style={{ position: "relative" }}>
+                    <span style={{ position: "absolute", left: "12px", top: "12px", color: "#64748b" }}>₹</span>
+                    <input 
+                      readOnly
+                      style={{ ...styles.readOnlyInput, paddingLeft: "30px" }} 
+                      value={displayedTotal.toFixed(2)} 
+                    />
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Payment Details */}
+            <div style={styles.gridTwo}>
+               <div style={styles.inputGroup}>
+                <label style={styles.label}>Payment Mode</label>
+                <select style={{ ...styles.input, cursor: "pointer" }} name="paymentMode" value={formData.paymentMode} onChange={handleChange}>
+                  <option value="COD">COD</option>
+                  <option value="Online">Online</option>
+                </select>
+              </div>
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Payment Status</label>
                 <select 
                   style={{ ...styles.input, cursor: "pointer" }} 
-                  name="agentId" 
-                  value={formData.agentId} 
+                  name="paymentStatus" 
+                  value={formData.paymentStatus} 
                   onChange={handleChange}
                 >
-                  <option value="">-- Select an Agent --</option>
-                  {agents.map((agent) => (
-                    <option key={agent._id} value={agent._id}>
-                      {agent.name || agent.username}
-                    </option>
+                   {PAYMENT_STATUSES.map(status => (
+                    <option key={status} value={status}>{status}</option>
                   ))}
                 </select>
               </div>
             </div>
 
+            {/* 4. Logistics Section */}
+            <div style={styles.gridTwo}>
+                <div style={styles.inputGroup}>
+                    <label style={styles.label}>Select Agent *</label>
+                    <select 
+                        style={{ ...styles.input, cursor: "pointer" }} 
+                        name="agentId" 
+                        value={formData.agentId} 
+                        onChange={handleChange}
+                    >
+                        <option value="">-- Select Agent --</option>
+                        {agents.map((agent) => (
+                        <option key={agent._id} value={agent._id}>
+                            {agent.name || agent.username || agent.email}
+                        </option>
+                        ))}
+                    </select>
+                </div>
+                <div style={styles.inputGroup}>
+                    <label style={styles.label}>AWB Number</label>
+                    <input 
+                        style={styles.input} 
+                        name="awb" 
+                        value={formData.awb} 
+                        onChange={handleChange} 
+                        placeholder="e.g. AWB123456" 
+                    />
+                </div>
+            </div>
+
             <div style={styles.inputGroup}>
               <label style={styles.label}>Remarks (Optional)</label>
-              <textarea style={{ ...styles.input, height: "80px", resize: "none" }} name="remarks" value={formData.remarks} onChange={handleChange} placeholder="Any special instructions..." />
+              <textarea style={{ ...styles.input, height: "80px", resize: "none" }} name="remarks" value={formData.remarks} onChange={handleChange} placeholder="e.g. Deliver between 10 AM - 5 PM" />
             </div>
+
           </form>
         </div>
 
+        {/* Footer */}
         <div style={styles.footer}>
           <button type="button" onClick={onClose} style={styles.secondaryBtn}>Cancel</button>
           <button type="submit" form="create-order-form" disabled={loading} style={styles.primaryBtn}>
